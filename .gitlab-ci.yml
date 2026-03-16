@@ -22,8 +22,8 @@ unit_tests:
   stage: test
   image: node:20
   script:
-  - npm install
-  - npm run test
+    - npm install
+    - npm run test
 
 # build Docker
 build_docker:
@@ -39,7 +39,9 @@ build_docker:
 
 security_scan:
   stage: security_scan
-  image: aquasec/trivy:latest
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
   script:
     - trivy image --exit-code 1 --severity HIGH,CRITICAL $IMAGE_TAG
 
@@ -62,8 +64,8 @@ deploy:
   script:
     - echo $KUBE_CONFIG | base64 -d > kubeconfig
     - export KUBECONFIG=$(pwd)/kubeconfig
-    - helm upgrade --install my-app ./helm-chart --namespace dev --value ./helm-chart.values-dev.yaml
+    - helm upgrade --install my-app ./helm-chart --namespace dev --values ./helm-chart/values-dev.yaml
   environment:
     name: dev
-    url: https://dev/my-app.com
+    url: https://dev.my-app.com
     
