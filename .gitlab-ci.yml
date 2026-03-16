@@ -1,0 +1,69 @@
+stages:
+  - lint
+  - test
+  - build
+  - security_scan
+  - push_image
+  - deploy
+
+variables:
+  IMAGE_TAG: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+#lint
+lint:
+  stage: lint
+  image: node:20
+  script:
+    - npm install
+    - npm run lint
+
+# test unitaires
+unit_tests:
+  stage: test
+  image: node:20
+  script:
+  - npm install
+  - npm run test
+
+# build Docker
+build_docker:
+  stage: build
+  image: docker:24
+  services:
+    - docker:dind
+  script:
+    - docker build -t $IMAGE_TAG .
+    - docker images
+
+# Scan sécurité avec Trivy
+
+security_scan:
+  stage: security_scan
+  image: aquasec/trivy:latest
+  script:
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL $IMAGE_TAG
+
+# Push Docker:
+push_image:
+  stage: push_image
+  image: docker:24
+  services:
+    - docker:dind
+  script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    - docker push $IMAGE_TAG
+  
+
+# Déploiement HELM Kubernetes
+
+deploy:
+  stage: deploy
+  image: alpine/helm:3.12.0
+  script:
+    - echo $KUBE_CONFIG | base64 -d > kubeconfig
+    - export KUBECONFIG=$(pwd)/kubeconfig
+    - helm upgrade --install my-app ./helm-chart --namespace dev --value ./helm-chart.values-dev.yaml
+  environment:
+    name: dev
+    url: https://dev/my-app.com
+    

@@ -1,0 +1,9 @@
+{
+    "name": "devops-factory",
+    "version": "1.0.0",
+    "scripts": {
+        "lint": "echo link ok",
+        "test": "echo test ok",
+        "start": "node app.js"
+    }
+}
