@@ -60,7 +60,10 @@ push_image:
 
 deploy:
   stage: deploy
-  image: alpine/helm:3.12.0
+  when: manual
+  image:
+    name: alpine/helm:3.12.0
+    entrypoint: [""]
   script:
     - echo $KUBE_CONFIG | base64 -d > kubeconfig
     - export KUBECONFIG=$(pwd)/kubeconfig
