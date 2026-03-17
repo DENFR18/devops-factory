@@ -39,12 +39,11 @@ build_docker:
 
 security_scan:
   stage: security_scan
-  image:
-    name: aquasec/trivy:latest
-    entrypoint: [""]
+  image: alpine:latest
   script:
-    - trivy image --exit-code 1 --severity HIGH,CRITICAL $IMAGE_TAG
-
+    - apk add --no-cache curl
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+    - ./bin/trivy image --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD --exit-code 1 --severity HIGH,CRITICAL $IMAGE_TAG
 # Push Docker:
 push_image:
   stage: push_image
