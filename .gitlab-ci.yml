@@ -2,8 +2,8 @@ stages:
   - lint
   - test
   - build
-  - security_scan
   - push_image
+  - security_scan
   - deploy
 
 variables:
