@@ -39,7 +39,6 @@ build_docker:
     - docker images
 
 # Scan sécurité avec Trivy
-
 security_scan:
   stage: security_scan
   image: alpine:latest
@@ -47,6 +46,7 @@ security_scan:
     - apk add --no-cache curl
     - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
     - ./bin/trivy image --username $ACR_USERNAME --password $ACR_PASSWORD --exit-code 0 --severity HIGH,CRITICAL $ACR_IMAGE
+
 # Push Docker vers ACR:
 push_image:
   stage: push_image
@@ -58,7 +58,6 @@ push_image:
     - docker build -t $ACR_IMAGE .
     - docker push $ACR_IMAGE
   
-
 # Terraform plan (automatique sur chaque push)
 terraform_plan:
   stage: infra_plan
@@ -94,20 +93,16 @@ terraform_apply:
     - when: never
 
 # Déploiement HELM Kubernetes
-
-# Déploiement HELM Kubernetes
 deploy:
-  stage: deploy
-  when: manual
-  image:
-    name: alpine/helm:3.12.0
-    entrypoint: [""]
-  script:
-    - printf '%s' "$KUBE_CONFIG" | base64 -d > kubeconfig
-    - export KUBECONFIG=$(pwd)/kubeconfig
-    # Ajout du flag --create-namespace ci-dessous 👇
-    - helm upgrade --install my-app ./helm-chart --namespace dev --create-namespace --values ./helm-chart/values-dev.yaml --set image.tag=$CI_COMMIT_SHORT_SHA
-  environment:
-    name: dev
-    url: https://dev.my-app.com
-    
+  stage: deploy
+  when: manual
+  image:
+    name: alpine/helm:3.12.0
+    entrypoint: [""]
+  script:
+    - printf '%s' "$KUBE_CONFIG" | base64 -d > kubeconfig
+    - export KUBECONFIG=$(pwd)/kubeconfig
+    - helm upgrade --install my-app ./helm-chart --namespace dev --create-namespace --values ./helm-chart/values-dev.yaml --set image.tag=$CI_COMMIT_SHORT_SHA
+  environment:
+    name: dev
+    url: https://dev.my-app.com
