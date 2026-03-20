@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>M1 Cloud Platform</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/m1-cloud.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>Mon Dashboard</h2>
+    <a href="index.html">Accueil</a>
+    <a href="m1-cloud.html" class="active" style="background-color: #374151;">M1 Cloud Platform</a>
+    <a href="utilisateurs.html">Utilisateurs</a>
+    <a href="projets.html">Projets</a>
+    <a href="#">Paramètres</a>
+  </div>
+
+  <div class="main-content dark-mode">
+    <div class="cloud-container">
+      <div class="cloud-header">
+        <h1>🚀 <span class="gradient-text">M1 Cloud Platform</span></h1>
+      </div>
+      
+      <div class="cloud-controls">
+        <div class="runtime-selector">
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none" class="python-icon">
+            <path d="M63.9 3.5C28.4 3.5 13.9 15.6 13.9 31.4V46h50.1v7H24c-19 0-21 15-21 34.2 0 16.5 6 32 32.5 32H41v-14c0-20.7 15.5-26 31-26h31.8c6.6 0 12.2-5.4 12.2-12V34.5c0-16.7-18-31-52.1-31zm-15 15.5c4.1 0 7.5 3.3 7.5 7.4 0 4.1-3.4 7.5-7.5 7.5-4.1 0-7.5-3.4-7.5-7.5 0-4.1 3.4-7.4 7.5-7.4z" fill="#4ade80"/>
+            <path d="M104 31.4v14c0 20.7-15.5 26-31 26H41.2c-6.6 0-12.2 5.4-12.2 12V115c0 16.7 18 20 52.1 20 35.5 0 49-12.1 49-27.9v-14.6H80v-7h40c19 0 21-15 21-34.1 0-16.5-6-32.1-32.5-32.1H93.9v12.1zm-25.1 76.1c4.1 0 7.5 3.4 7.5 7.5 0 4.1-3.4 7.5-7.5 7.5-4.1 0-7.5-3.4-7.5-7.5 0-4.1 3.4-7.5 7.5-7.5z" fill="#4ade80"/>
+          </svg>
+          <select>
+            <option>Python (3.9)</option>
+          </select>
+        </div>
+        <button class="deploy-button">
+          ▶ LANCER LE DÉPLOIEMENT
+        </button>
+      </div>
+
+      <div class="editor-container">
+        <pre><code class="language-python">
+<span class="keyword">import</span> <span class="variable">time</span>
+<span class="function">print</span>(<span class="string">"⌛ Début du test de charge..."</span>)
+<span class="variable">time</span>.<span class="method">sleep</span>(<span class="number">40</span>)
+<span class="function">print</span>(<span class="string">"✅ Fin du test !"</span>)
+        </code></pre>
+      </div>
+
+      <div class="terminal-container">
+        <div class="terminal-header">
+          Terminal de Sortie (Logs Kubernetes)
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line error-line">
+            Erreur système : Timed out waiting for [20000] milliseconds for [Pod] with name:[run-9ae5e145] in namespace [default].
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

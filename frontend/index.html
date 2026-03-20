@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+  <div class="sidebar">
+    <h2>Mon Dashboard</h2>
+    <a href="index.html">Accueil</a>
+    <a href="utilisateurs.html">Utilisateurs</a>
+    <a href="projets.html">Projets</a>
+    <a href="#">Paramètres</a>
+  </div>
+
+  <div class="main-content">
+    <div class="welcome">
+      <img src="assets/img/user.png" alt="Utilisateur">
+      <span id="greeting">Bonjour !</span>
+    </div>
+
+    <h1>Tableau de bord</h1>
+    <p>Bienvenue sur votre tableau de bord.</p>
+
+    <table id="dashboardTable">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Rôle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Les données JS viendront ici -->
+      </tbody>
+    </table>
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
