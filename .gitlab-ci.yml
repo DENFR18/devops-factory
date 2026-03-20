@@ -95,17 +95,19 @@ terraform_apply:
 
 # Déploiement HELM Kubernetes
 
+# Déploiement HELM Kubernetes
 deploy:
-  stage: deploy
-  when: manual
-  image:
-    name: alpine/helm:3.12.0
-    entrypoint: [""]
-  script:
-    - printf '%s' "$KUBE_CONFIG" | base64 -d > kubeconfig
-    - export KUBECONFIG=$(pwd)/kubeconfig
-    - helm upgrade --install my-app ./helm-chart --namespace dev --values ./helm-chart/values-dev.yaml --set image.tag=$CI_COMMIT_SHORT_SHA
-  environment:
-    name: dev
-    url: https://dev.my-app.com
+  stage: deploy
+  when: manual
+  image:
+    name: alpine/helm:3.12.0
+    entrypoint: [""]
+  script:
+    - printf '%s' "$KUBE_CONFIG" | base64 -d > kubeconfig
+    - export KUBECONFIG=$(pwd)/kubeconfig
+    # Ajout du flag --create-namespace ci-dessous 👇
+    - helm upgrade --install my-app ./helm-chart --namespace dev --create-namespace --values ./helm-chart/values-dev.yaml --set image.tag=$CI_COMMIT_SHORT_SHA
+  environment:
+    name: dev
+    url: https://dev.my-app.com
     
