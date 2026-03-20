@@ -1,0 +1,10 @@
+# Copier ce fichier en terraform.tfvars et adapter les valeurs
+# Ne jamais committer terraform.tfvars si elle contient des secrets
+
+subscription_id    = "4dd0789e-e199-44d7-bed6-b6a8af57d141"
+location           = "swedencentral"
+project_name       = "devops-factory"
+environment        = "dev"
+aks_node_count     = 1
+aks_node_vm_size   = "Standard_B2s"
+kubernetes_version = "1.29"
