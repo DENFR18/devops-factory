@@ -10,6 +10,7 @@ stages:
 
 variables:
   IMAGE_TAG: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+  ACR_IMAGE: "acrdevopsfactorydev.azurecr.io/devops-factory:$CI_COMMIT_SHORT_SHA"
 
 #lint
 lint:
@@ -46,16 +47,16 @@ security_scan:
     - apk add --no-cache curl
     - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
     - ./bin/trivy image --username $CI_REGISTRY_USER --password $CI_REGISTRY_PASSWORD --exit-code 0 --severity HIGH,CRITICAL $IMAGE_TAG
-# Push Docker:
+# Push Docker vers ACR:
 push_image:
   stage: push_image
   image: docker:24
   services:
     - docker:dind
   script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
-    - docker build -t $IMAGE_TAG .
-    - docker push $IMAGE_TAG
+    - echo $ACR_PASSWORD | docker login acrdevopsfactorydev.azurecr.io -u $ACR_USERNAME --password-stdin
+    - docker build -t $ACR_IMAGE .
+    - docker push $ACR_IMAGE
   
 
 # Terraform plan (automatique sur chaque push)
@@ -103,7 +104,7 @@ deploy:
   script:
     - echo $KUBE_CONFIG | base64 -d > kubeconfig
     - export KUBECONFIG=$(pwd)/kubeconfig
-    - helm upgrade --install my-app ./helm-chart --namespace dev --values ./helm-chart/values-dev.yaml
+    - helm upgrade --install my-app ./helm-chart --namespace dev --values ./helm-chart/values-dev.yaml --set image.tag=$CI_COMMIT_SHORT_SHA
   environment:
     name: dev
     url: https://dev.my-app.com
