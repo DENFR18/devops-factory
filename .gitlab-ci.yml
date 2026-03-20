@@ -4,6 +4,8 @@ stages:
   - build
   - push_image
   - security_scan
+  - infra_plan
+  - infra_apply
   - deploy
 
 variables:
@@ -55,6 +57,36 @@ push_image:
     - docker build -t $IMAGE_TAG .
     - docker push $IMAGE_TAG
   
+
+# Terraform plan (automatique sur chaque push)
+terraform_plan:
+  stage: infra_plan
+  image:
+    name: hashicorp/terraform:1.7
+    entrypoint: [""]
+  script:
+    - cd infra
+    - terraform init
+    - terraform plan -out=tfplan
+  artifacts:
+    paths:
+      - infra/tfplan
+      - infra/.terraform.lock.hcl
+    expire_in: 1 day
+
+# Terraform apply (manuel)
+terraform_apply:
+  stage: infra_apply
+  when: manual
+  image:
+    name: hashicorp/terraform:1.7
+    entrypoint: [""]
+  script:
+    - cd infra
+    - terraform init
+    - terraform apply -auto-approve
+  dependencies:
+    - terraform_plan
 
 # Déploiement HELM Kubernetes
 
