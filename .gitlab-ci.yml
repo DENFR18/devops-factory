@@ -73,6 +73,8 @@ terraform_plan:
       - infra/tfplan
       - infra/.terraform.lock.hcl
     expire_in: 1 day
+  rules:
+    - when: never
 
 # Terraform apply (manuel)
 terraform_apply:
@@ -87,6 +89,8 @@ terraform_apply:
     - terraform apply -auto-approve
   dependencies:
     - terraform_plan
+  rules:
+    - when: never
 
 # Déploiement HELM Kubernetes
 
