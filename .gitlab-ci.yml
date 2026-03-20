@@ -102,7 +102,7 @@ deploy:
     name: alpine/helm:3.12.0
     entrypoint: [""]
   script:
-    - echo $KUBE_CONFIG | base64 -d > kubeconfig
+    - printf '%s' "$KUBE_CONFIG" | base64 -d > kubeconfig
     - export KUBECONFIG=$(pwd)/kubeconfig
     - helm upgrade --install my-app ./helm-chart --namespace dev --values ./helm-chart/values-dev.yaml --set image.tag=$CI_COMMIT_SHORT_SHA
   environment:
