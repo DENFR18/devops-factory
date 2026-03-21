@@ -1,7 +1,15 @@
-import Dashboard from "./pages/Dashboard";
+const express = require("express");
+const path = require("path");
 
-function App() {
-  return <Dashboard />;
-}
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-export default App;
+app.use(express.static(path.join(__dirname, "frontend")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "index.html"));
+});
+
+app.listen(PORT, () => {
+  console.log(`DevOps Factory portal running on port ${PORT}`);
+});

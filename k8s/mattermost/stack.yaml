@@ -1,0 +1,134 @@
+---
+# ─── PostgreSQL ───────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: stack-mattermost
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: managed-csi
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: stack-mattermost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          env:
+            - name: POSTGRES_DB
+              value: "mattermost"
+            - name: POSTGRES_USER
+              value: "mattermost"
+            - name: POSTGRES_PASSWORD
+              value: "mmpassword"
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: stack-mattermost
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# ─── Mattermost ───────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mattermost-pvc
+  namespace: stack-mattermost
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: managed-csi
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mattermost
+  namespace: stack-mattermost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mattermost
+  template:
+    metadata:
+      labels:
+        app: mattermost
+    spec:
+      containers:
+        - name: mattermost
+          image: mattermost/mattermost-team-edition:9.3
+          env:
+            - name: MM_SQLSETTINGS_DRIVERNAME
+              value: "postgres"
+            - name: MM_SQLSETTINGS_DATASOURCE
+              value: "postgres://mattermost:mmpassword@postgres:5432/mattermost?sslmode=disable"
+            - name: MM_SERVICESETTINGS_SITEURL
+              value: "http://mattermost.20.240.2.187.nip.io"
+          ports:
+            - containerPort: 8065
+          volumeMounts:
+            - name: mattermost-data
+              mountPath: /mattermost/data
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: mattermost-data
+          persistentVolumeClaim:
+            claimName: mattermost-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mattermost
+  namespace: stack-mattermost
+spec:
+  selector:
+    app: mattermost
+  ports:
+    - port: 8065
+      targetPort: 8065

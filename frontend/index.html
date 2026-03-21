@@ -2,42 +2,302 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Factory — Plateforme ESN</title>
+  <link rel="stylesheet" href="assets/css/portal.css">
 </head>
 <body>
 
-  <div class="sidebar">
-    <h2>Mon Dashboard</h2>
-    <a href="index.html">Accueil</a>
-    <a href="utilisateurs.html">Utilisateurs</a>
-    <a href="projets.html">Projets</a>
-    <a href="#">Paramètres</a>
-  </div>
-
-  <div class="main-content">
-    <div class="welcome">
-      <img src="assets/img/user.png" alt="Utilisateur">
-      <span id="greeting">Bonjour !</span>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚙️</span>
+        <span class="logo-text">DevOps<strong>Factory</strong></span>
+      </div>
+      <nav class="nav">
+        <a href="#stacks">Nos stacks</a>
+        <a href="#infra">Infrastructure</a>
+        <a href="#equipe">Équipe</a>
+      </nav>
+      <span class="badge-live">🟢 Cluster Live</span>
     </div>
+  </header>
 
-    <h1>Tableau de bord</h1>
-    <p>Bienvenue sur votre tableau de bord.</p>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-tag">Mastère DevOps — SUP DE VINCI 2025-2026</div>
+      <h1>Plateforme DevOps<br><span class="gradient-text">industrialisée & multi-tenant</span></h1>
+      <p class="hero-sub">
+        DevOps Factory met à disposition une infrastructure cloud complète sur Azure AKS,
+        permettant à plusieurs équipes de déployer leurs stacks techniques de façon
+        automatisée, sécurisée et supervisée.
+      </p>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-number">13</span>
+          <span class="stat-label">Namespaces isolés</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">11</span>
+          <span class="stat-label">Stacks déployées</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">1</span>
+          <span class="stat-label">Cluster AKS</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">100%</span>
+          <span class="stat-label">Infrastructure as Code</span>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <table id="dashboardTable">
-      <thead>
-        <tr>
-          <th>Nom</th>
-          <th>Email</th>
-          <th>Rôle</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Les données JS viendront ici -->
-      </tbody>
-    </table>
-  </div>
+  <!-- STACKS -->
+  <section class="section" id="stacks">
+    <div class="container">
+      <div class="section-header">
+        <h2>Stacks déployées</h2>
+        <p>Chaque stack tourne dans son propre namespace Kubernetes avec des quotas CPU/RAM dédiés.</p>
+      </div>
+      <div class="grid">
 
-  <script src="js/main.js"></script>
+        <div class="card">
+          <div class="card-icon">🌐</div>
+          <div class="card-body">
+            <div class="card-title">Portail ESN</div>
+            <div class="card-desc">Dashboard de gestion de la plateforme DevOps Factory</div>
+            <div class="card-meta"><span class="tag tag-green">Running</span><span class="tag tag-gray">esn-portal</span></div>
+            <a class="card-link" href="http://esn-portal.20.240.2.187.nip.io" target="_blank">esn-portal.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">📝</div>
+          <div class="card-body">
+            <div class="card-title">WordPress</div>
+            <div class="card-desc">CMS open-source pour sites web et blogs d'entreprise</div>
+            <div class="card-meta"><span class="tag tag-green">Running</span><span class="tag tag-gray">stack-wordpress</span></div>
+            <a class="card-link" href="http://wordpress.20.240.2.187.nip.io" target="_blank">wordpress.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">👻</div>
+          <div class="card-body">
+            <div class="card-title">Ghost</div>
+            <div class="card-desc">Plateforme de publication moderne pour contenus et newsletters</div>
+            <div class="card-meta"><span class="tag tag-green">Running</span><span class="tag tag-gray">stack-ghost</span></div>
+            <a class="card-link" href="http://ghost.20.240.2.187.nip.io" target="_blank">ghost.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🐙</div>
+          <div class="card-body">
+            <div class="card-title">Gitea</div>
+            <div class="card-desc">Forge Git self-hosted pour la gestion de code source</div>
+            <div class="card-meta"><span class="tag tag-green">Running</span><span class="tag tag-gray">stack-gitea</span></div>
+            <a class="card-link" href="http://gitea.20.240.2.187.nip.io" target="_blank">gitea.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">☁️</div>
+          <div class="card-body">
+            <div class="card-title">Nextcloud</div>
+            <div class="card-desc">Solution de stockage et partage de fichiers en cloud privé</div>
+            <div class="card-meta"><span class="tag tag-green">Running</span><span class="tag tag-gray">stack-nextcloud</span></div>
+            <a class="card-link" href="http://nextcloud.20.240.2.187.nip.io" target="_blank">nextcloud.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">💬</div>
+          <div class="card-body">
+            <div class="card-title">Mattermost</div>
+            <div class="card-desc">Messagerie d'équipe open-source et sécurisée</div>
+            <div class="card-meta"><span class="tag tag-green">Running</span><span class="tag tag-gray">stack-mattermost</span></div>
+            <a class="card-link" href="http://mattermost.20.240.2.187.nip.io" target="_blank">mattermost.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🔍</div>
+          <div class="card-body">
+            <div class="card-title">SonarQube</div>
+            <div class="card-desc">Analyse continue de la qualité et sécurité du code source</div>
+            <div class="card-meta"><span class="tag tag-green">Running</span><span class="tag tag-gray">stack-sonarqube</span></div>
+            <a class="card-link" href="http://sonarqube.20.240.2.187.nip.io" target="_blank">sonarqube.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🗄️</div>
+          <div class="card-body">
+            <div class="card-title">MinIO</div>
+            <div class="card-desc">Stockage d'objets S3-compatible pour artefacts et fichiers</div>
+            <div class="card-meta"><span class="tag tag-green">Running</span><span class="tag tag-gray">stack-minio</span></div>
+            <a class="card-link" href="http://minio.20.240.2.187.nip.io" target="_blank">minio.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🟢</div>
+          <div class="card-body">
+            <div class="card-title">Node.js API</div>
+            <div class="card-desc">API REST Express.js — déploiement via pipeline GitLab CI/CD</div>
+            <div class="card-meta"><span class="tag tag-yellow">CI/CD</span><span class="tag tag-gray">stack-node-api</span></div>
+            <a class="card-link" href="http://node-api.20.240.2.187.nip.io" target="_blank">node-api.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🐍</div>
+          <div class="card-body">
+            <div class="card-title">Flask API</div>
+            <div class="card-desc">API REST Python Flask — déploiement via pipeline GitLab CI/CD</div>
+            <div class="card-meta"><span class="tag tag-yellow">CI/CD</span><span class="tag tag-gray">stack-flask</span></div>
+            <a class="card-link" href="http://flask.20.240.2.187.nip.io" target="_blank">flask.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">⚛️</div>
+          <div class="card-body">
+            <div class="card-title">React App</div>
+            <div class="card-desc">Application frontend React — déploiement via pipeline GitLab CI/CD</div>
+            <div class="card-meta"><span class="tag tag-yellow">CI/CD</span><span class="tag tag-gray">stack-react</span></div>
+            <a class="card-link" href="http://react.20.240.2.187.nip.io" target="_blank">react.20.240.2.187.nip.io ↗</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- INFRA -->
+  <section class="section section-dark" id="infra">
+    <div class="container">
+      <div class="section-header">
+        <h2>Infrastructure Azure</h2>
+        <p>100% provisionné en Terraform — reproducible, versionné, documenté.</p>
+      </div>
+      <div class="infra-grid">
+        <div class="infra-card">
+          <div class="infra-icon">☸️</div>
+          <div class="infra-title">Azure AKS</div>
+          <div class="infra-desc">Cluster Kubernetes managé avec autoscaler (1→3 nodes), Azure CNI, RBAC activé</div>
+        </div>
+        <div class="infra-card">
+          <div class="infra-icon">📦</div>
+          <div class="infra-title">Azure ACR</div>
+          <div class="infra-desc">Registry Docker privé — toutes les images buildées via GitLab CI et stockées ici</div>
+        </div>
+        <div class="infra-card">
+          <div class="infra-icon">🔐</div>
+          <div class="infra-title">Azure Key Vault</div>
+          <div class="infra-desc">Gestion centralisée des secrets — injectés dans les pods via CSI Driver</div>
+        </div>
+        <div class="infra-card">
+          <div class="infra-icon">📊</div>
+          <div class="infra-title">Log Analytics</div>
+          <div class="infra-desc">Container Insights activé — métriques AKS remontées vers Azure Monitor</div>
+        </div>
+        <div class="infra-card">
+          <div class="infra-icon">🌐</div>
+          <div class="infra-title">Ingress NGINX</div>
+          <div class="infra-desc">Reverse proxy centralisé — routing par sous-domaine vers chaque namespace</div>
+        </div>
+        <div class="infra-card">
+          <div class="infra-icon">🔄</div>
+          <div class="infra-title">GitLab CI/CD</div>
+          <div class="infra-desc">Pipelines automatisés — lint, test, build, scan Trivy, push ACR, deploy Helm</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section class="section" id="pipeline">
+    <div class="container">
+      <div class="section-header">
+        <h2>Pipeline CI/CD</h2>
+        <p>Chaque commit déclenche automatiquement la chaîne complète.</p>
+      </div>
+      <div class="pipeline">
+        <div class="pipeline-step">
+          <div class="step-num">1</div>
+          <div class="step-label">Lint</div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-num">2</div>
+          <div class="step-label">Test</div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-num">3</div>
+          <div class="step-label">Build Docker</div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-num">4</div>
+          <div class="step-label">Scan Trivy</div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-num">5</div>
+          <div class="step-label">Push ACR</div>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step">
+          <div class="step-num">6</div>
+          <div class="step-label">Deploy Helm</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EQUIPE -->
+  <section class="section section-dark" id="equipe">
+    <div class="container">
+      <div class="section-header">
+        <h2>Équipe</h2>
+        <p>Mastère DevOps — SUP DE VINCI 2025-2026</p>
+      </div>
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="team-avatar">👨‍💻</div>
+          <div class="team-name">Infrastructure & IaC</div>
+          <div class="team-role">Terraform · Azure · AKS · Namespaces · CI/CD Infra</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">📈</div>
+          <div class="team-name">Monitoring & Observabilité</div>
+          <div class="team-role">Prometheus · Grafana · Alertmanager · Green IT</div>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">🚀</div>
+          <div class="team-name">Applications & Stacks</div>
+          <div class="team-role">Docker · Helm · Kubernetes · Déploiements</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <span class="logo-text">DevOps<strong>Factory</strong></span>
+        <span>Mastère DevOps · SUP DE VINCI · 2025-2026</span>
+        <span>Azure AKS · Terraform · GitLab CI/CD · Kubernetes</span>
+      </div>
+    </div>
+  </footer>
+
 </body>
 </html>

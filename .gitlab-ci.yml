@@ -58,39 +58,50 @@ push_image:
     - docker build -t $ACR_IMAGE .
     - docker push $ACR_IMAGE
   
-# Terraform plan (automatique sur chaque push)
+# Terraform plan (automatique sur chaque push sur main)
 terraform_plan:
   stage: infra_plan
   image:
     name: hashicorp/terraform:1.7
     entrypoint: [""]
+  variables:
+    ARM_CLIENT_ID: $ARM_CLIENT_ID
+    ARM_CLIENT_SECRET: $ARM_CLIENT_SECRET
+    ARM_SUBSCRIPTION_ID: $ARM_SUBSCRIPTION_ID
+    ARM_TENANT_ID: $ARM_TENANT_ID
   script:
     - cd infra
     - terraform init
+    - terraform validate
     - terraform plan -out=tfplan
   artifacts:
     paths:
       - infra/tfplan
       - infra/.terraform.lock.hcl
     expire_in: 1 day
-  rules:
-    - when: never
+  only:
+    - main
 
-# Terraform apply (manuel)
+# Terraform apply (manuel — déclenché depuis GitLab UI)
 terraform_apply:
   stage: infra_apply
   when: manual
   image:
     name: hashicorp/terraform:1.7
     entrypoint: [""]
+  variables:
+    ARM_CLIENT_ID: $ARM_CLIENT_ID
+    ARM_CLIENT_SECRET: $ARM_CLIENT_SECRET
+    ARM_SUBSCRIPTION_ID: $ARM_SUBSCRIPTION_ID
+    ARM_TENANT_ID: $ARM_TENANT_ID
   script:
     - cd infra
     - terraform init
-    - terraform apply -auto-approve
+    - terraform apply -auto-approve tfplan
   dependencies:
     - terraform_plan
-  rules:
-    - when: never
+  only:
+    - main
 
 # Déploiement HELM Kubernetes
 deploy:

@@ -22,20 +22,32 @@ variable "environment" {
   default     = "dev"
 }
 
-variable "aks_node_count" {
-  description = "Number of AKS nodes"
-  type        = number
-  default     = 1
-}
-
 variable "aks_node_vm_size" {
   description = "VM size for AKS nodes"
   type        = string
   default     = "Standard_B2s_v2"
 }
 
+variable "aks_min_node_count" {
+  description = "Minimum number of AKS nodes (autoscaler)"
+  type        = number
+  default     = 1
+}
+
+variable "aks_max_node_count" {
+  description = "Maximum number of AKS nodes (autoscaler)"
+  type        = number
+  default     = 3
+}
+
 variable "kubernetes_version" {
   description = "Kubernetes version for AKS"
   type        = string
   default     = "1.32"
+}
+
+variable "log_analytics_retention_days" {
+  description = "Log Analytics workspace retention in days"
+  type        = number
+  default     = 30
 }
