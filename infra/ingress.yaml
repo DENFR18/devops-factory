@@ -1,6 +1,6 @@
 # Ingress centralisé — toutes les stacks ESN
-# IP LoadBalancer : 20.240.2.187
-# Pattern URL : <stack>.20.240.2.187.nip.io
+# IP LoadBalancer : 9.223.79.19
+# Pattern URL : <stack>.9.223.79.19.nip.io
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -13,7 +13,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: esn-portal.20.240.2.187.nip.io
+    - host: esn-portal.9.223.79.19.nip.io
       http:
         paths:
           - path: /
@@ -35,7 +35,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: wordpress.20.240.2.187.nip.io
+    - host: wordpress.9.223.79.19.nip.io
       http:
         paths:
           - path: /
@@ -57,7 +57,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: ghost.20.240.2.187.nip.io
+    - host: ghost.9.223.79.19.nip.io
       http:
         paths:
           - path: /
@@ -79,7 +79,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: gitea.20.240.2.187.nip.io
+    - host: gitea.9.223.79.19.nip.io
       http:
         paths:
           - path: /
@@ -101,7 +101,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: nextcloud.20.240.2.187.nip.io
+    - host: nextcloud.9.223.79.19.nip.io
       http:
         paths:
           - path: /
@@ -123,7 +123,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: node-api.20.240.2.187.nip.io
+    - host: node-api.9.223.79.19.nip.io
       http:
         paths:
           - path: /
@@ -145,7 +145,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: flask.20.240.2.187.nip.io
+    - host: flask.9.223.79.19.nip.io
       http:
         paths:
           - path: /
@@ -167,7 +167,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: react.20.240.2.187.nip.io
+    - host: react.9.223.79.19.nip.io
       http:
         paths:
           - path: /
@@ -189,7 +189,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: mattermost.20.240.2.187.nip.io
+    - host: mattermost.9.223.79.19.nip.io
       http:
         paths:
           - path: /
@@ -211,7 +211,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: sonarqube.20.240.2.187.nip.io
+    - host: sonarqube.9.223.79.19.nip.io
       http:
         paths:
           - path: /
@@ -233,7 +233,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: minio.20.240.2.187.nip.io
+    - host: minio.9.223.79.19.nip.io
       http:
         paths:
           - path: /

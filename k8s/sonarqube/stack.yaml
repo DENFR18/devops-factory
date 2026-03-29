@@ -39,12 +39,24 @@ spec:
         app: sonarqube
     spec:
       # SonarQube nécessite vm.max_map_count=262144
+      securityContext:
+        fsGroup: 1000
       initContainers:
         - name: init-sysctl
           image: busybox:1.36
           command: ["sysctl", "-w", "vm.max_map_count=262144"]
           securityContext:
             privileged: true
+        - name: init-chown
+          image: busybox:1.36
+          command: ["sh", "-c", "chown -R 1000:1000 /opt/sonarqube/data /opt/sonarqube/logs"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: sonarqube-data
+              mountPath: /opt/sonarqube/data
+            - name: sonarqube-logs
+              mountPath: /opt/sonarqube/logs
       containers:
         - name: sonarqube
           image: sonarqube:10-community

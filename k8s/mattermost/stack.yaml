@@ -37,6 +37,8 @@ spec:
               value: "mattermost"
             - name: POSTGRES_PASSWORD
               value: "mmpassword"
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           ports:
             - containerPort: 5432
           volumeMounts:
@@ -103,7 +105,7 @@ spec:
             - name: MM_SQLSETTINGS_DATASOURCE
               value: "postgres://mattermost:mmpassword@postgres:5432/mattermost?sslmode=disable"
             - name: MM_SERVICESETTINGS_SITEURL
-              value: "http://mattermost.20.240.2.187.nip.io"
+              value: "http://mattermost.9.223.79.19.nip.io"
           ports:
             - containerPort: 8065
           volumeMounts:
