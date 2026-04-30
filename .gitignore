@@ -1,13 +1,126 @@
+# ============================================================
 # Terraform
-infra/.terraform/
-infra/.terraform.lock.hcl
-infra/terraform.tfvars
-infra/terraform.tfstate
-infra/terraform.tfstate.backup
-infra/*.tfplan
+# ============================================================
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfstate.*.backup
+*.tfplan
+*.tfplan.json
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
 
-# Node
-node_modules/
-
-# Misc
+# ============================================================
+# Secrets & credentials locaux
+# ============================================================
+*.env
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+kubeconfig
+kubeconfig.*
+.kubeconfig
+*-kubeconfig.yaml
+secrets.yaml
+secrets.yml
+*-secret.yaml
+*-secret.yml
+sealed-secrets-key*
+scw-config.yaml
+
+# ============================================================
+# Kubernetes / Helm
+# ============================================================
+charts/
+Chart.lock
+
+# ============================================================
+# IDE & éditeurs
+# ============================================================
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.history/
+
+# ============================================================
+# OS
+# ============================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Desktop.ini
+$RECYCLE.BIN/
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# ============================================================
+# Logs & temporaires
+# ============================================================
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+.cache/
+dist/
+build/
+tmp/
+
+# ============================================================
+# Node (portail / micro-services JS)
+# ============================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn/cache
+.pnp.*
+
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+.pytest_cache/
+
+# ============================================================
+# SonarCloud / outils scan locaux
+# ============================================================
+.scannerwork/
+sonar-project.properties.local
+trivy-results.json
+checkov-results.*
+tflint-report.*
+
+# ============================================================
+# Fichiers Claude Code (contexte local non versionné)
+# ============================================================
+.claude/
