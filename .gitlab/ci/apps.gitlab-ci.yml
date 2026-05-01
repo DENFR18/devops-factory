@@ -1,6 +1,10 @@
+"
 # ──────────────────────────────────────────────────────────────────────────────
 # DevOps Factory — Application pipeline (build / scan / deploy)
+# Sera complété au Prompt 3 (pipeline app DevSecOps)
 # ──────────────────────────────────────────────────────────────────────────────
-# TODO: define build, Trivy scan, and ArgoCD sync jobs for the three tenants
-# (alpha, beta, gamma) once the Kapsule cluster is provisioned via infra.gitlab-ci.yml.
-# ──────────────────────────────────────────────────────────────────────────────
+
+workflow:
+  rules:
+    - when: never
+"
