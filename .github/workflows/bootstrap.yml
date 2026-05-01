@@ -40,14 +40,19 @@ jobs:
 
     steps:
       - name: Configure AWS CLI for Scaleway Object Storage
-        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3e54715 # v4.0.1
-        with:
-          aws-access-key-id: ${{ secrets.SCW_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.SCW_SECRET_KEY }}
-          aws-region: fr-par
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          AWS_DEFAULT_REGION: fr-par
+        run: |
+          echo "AWS CLI configured for Scaleway S3-compatible Object Storage"
+          aws --version
 
       - name: Set up state bucket (dev)
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          AWS_DEFAULT_REGION: fr-par
           BUCKET: ${{ env.TF_STATE_BUCKET_DEV }}
         run: |
           set -euo pipefail
@@ -98,6 +103,9 @@ jobs:
 
       - name: Set up state bucket (prod)
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          AWS_DEFAULT_REGION: fr-par
           BUCKET: ${{ env.TF_STATE_BUCKET_PROD }}
         run: |
           set -euo pipefail
@@ -141,6 +149,10 @@ jobs:
           echo "  ✓ Encryption: Scaleway default at-rest encryption active"
 
       - name: Verify and summarize
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          AWS_DEFAULT_REGION: fr-par
         run: |
           set -euo pipefail
 
