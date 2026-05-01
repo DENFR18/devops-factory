@@ -1,0 +1,24 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# .trivyignore — service-alpha
+#
+# Each ignored CVE MUST have a comment block documenting:
+#   - Severity and affected package
+#   - Why it is safe to ignore (no fix, not reachable, mitigated elsewhere)
+#   - Review deadline (max 90 days from ignore date)
+#
+# Template:
+#   # CVE-XXXX-XXXXX – <package>: <short description>
+#   # Severity  : LOW | MEDIUM | HIGH | CRITICAL
+#   # Status    : <no upstream fix | fix pending | mitigated by ...>
+#   # Scope     : <which binary/path is affected and why it's not reachable>
+#   # Review by : YYYY-MM-DD
+#   CVE-XXXX-XXXXX
+# ──────────────────────────────────────────────────────────────────────────────
+
+# CVE-2023-4641 – shadow-utils: newgrp leaks passwords to the audit subsystem
+# Severity  : LOW
+# Status    : No upstream fix available as of 2025-05-01 (Debian bookworm)
+# Scope     : Affects /usr/sbin/newgrp. This binary is not present in the
+#             runtime image and the service never calls newgrp at runtime.
+# Review by : 2025-08-01
+CVE-2023-4641

@@ -1,0 +1,23 @@
+# Helm values for service-alpha — tenant: alpha
+# image.tag is updated automatically by the CI update-manifest job.
+# Do not edit image.tag manually.
+
+image:
+  repository: rg.fr-par.scw.cloud/devops-factory/service-alpha
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
