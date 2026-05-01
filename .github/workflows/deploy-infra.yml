@@ -1,0 +1,124 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Deploy Infrastructure
+#
+# Workflow opérationnel day-to-day pour déployer l'infrastructure Terraform
+# sur l'environnement choisi (dev ou prod).
+#
+# Déclencheur : workflow_dispatch uniquement (bouton "Run workflow").
+# L'environnement GitHub correspondant (dev ou prod) doit avoir une protection
+# "Required reviewers" configurée dans Settings → Environments pour bloquer
+# un apply prod accidentel.
+#
+# Required GitHub Secrets : SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_PROJECT_ID
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev or prod)'
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - prod
+
+env:
+  TF_VERSION: "1.7.5"
+  SCW_DEFAULT_REGION: fr-par
+  SCW_DEFAULT_ZONE: fr-par-1
+  TF_STATE_BUCKET_DEV: devops-factory-tfstate-dev
+  TF_STATE_BUCKET_PROD: devops-factory-tfstate-prod
+  SCW_S3_ENDPOINT: https://s3.fr-par.scw.cloud
+  # S3 backend credentials
+  AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+  AWS_DEFAULT_REGION: fr-par
+  # Scaleway provider credentials (read directly from env by the provider)
+  SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+  SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+  # Terraform variable
+  TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+# One deploy per environment at a time — never cancel an apply in progress.
+concurrency:
+  group: infra-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: |
+          set -euo pipefail
+          terraform init \
+            -backend-config="bucket=devops-factory-tfstate-${{ inputs.environment }}" \
+            -backend-config="key=terraform.tfstate" \
+            -backend-config="region=${SCW_DEFAULT_REGION}" \
+            -backend-config="access_key=${AWS_ACCESS_KEY_ID}" \
+            -backend-config="secret_key=${AWS_SECRET_ACCESS_KEY}" \
+            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
+            -input=false \
+            -reconfigure
+
+      - name: Terraform Validate
+        run: |
+          set -euo pipefail
+          terraform validate
+
+      - name: Terraform Plan
+        run: |
+          set -euo pipefail
+          terraform plan \
+            -out=tfplan \
+            -input=false \
+            -no-color
+
+      - name: Show Plan Summary
+        run: |
+          set -euo pipefail
+          terraform show -no-color tfplan
+
+      - name: Terraform Apply
+        run: |
+          set -euo pipefail
+          terraform apply -auto-approve tfplan
+
+      - name: Output cluster info
+        run: |
+          set -euo pipefail
+          terraform output -json || echo "No outputs defined yet"
+
+      - name: Deploy summary
+        run: |
+          set -euo pipefail
+          echo "════════════════════════════════════════════════"
+          echo "  ✅ Infrastructure déployée"
+          echo "  Environnement : ${{ inputs.environment }}"
+          echo "  Commit        : ${{ github.sha }}"
+          echo ""
+          echo "  ℹ️  Pour détruire : lancer le workflow"
+          echo "     'Destroy Infrastructure' avec confirm='destroy'"
+          echo "════════════════════════════════════════════════"
