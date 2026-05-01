@@ -102,8 +102,6 @@ jobs:
             -backend-config="bucket=${TF_BACKEND_BUCKET}" \
             -backend-config="key=terraform.tfstate" \
             -backend-config="region=${SCW_DEFAULT_REGION}" \
-            -backend-config="access_key=${AWS_ACCESS_KEY_ID}" \
-            -backend-config="secret_key=${AWS_SECRET_ACCESS_KEY}" \
             -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
             -input=false \
             -reconfigure
