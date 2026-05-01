@@ -1,0 +1,31 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is in .gitignore — NEVER commit it.
+# PROD: any apply requires a validated plan and a manual approval in GitLab CI.
+
+project_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Network (different /20 from dev to avoid overlap)
+private_subnet_cidr = "10.1.0.0/20"
+
+# Cluster
+kubernetes_version = "1.31"
+
+# Node pool (prod: GP1-S, 3-6 nodes)
+node_type       = "GP1-S"
+node_count      = 3
+autoscaling_min = 3
+autoscaling_max = 6
+
+# FinOps
+cost_center = "platform-prod"
+owner       = "devops-team"
+
+# Application buckets — override only if you need different names or retention
+# app_buckets = [
+#   {
+#     name         = "devops-factory-logs-prod"
+#     purpose      = "logs"
+#     cold_after   = 30
+#     expire_after = 730
+#   },
+# ]

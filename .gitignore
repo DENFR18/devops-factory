@@ -2,7 +2,6 @@
 # Terraform
 # ============================================================
 **/.terraform/
-**/.terraform.lock.hcl
 *.tfstate
 *.tfstate.backup
 *.tfstate.*.backup
@@ -18,10 +17,17 @@ override.tf.json
 .terraformrc
 terraform.rc
 
+# Variables Terraform (peuvent contenir des valeurs sensibles)
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+!*.tfvars.json.example
+
+# IMPORTANT : .terraform.lock.hcl DOIT être committé (lock providers)
+
 # ============================================================
 # Secrets & credentials locaux
 # ============================================================
-*.env
 .env
 .env.*
 !.env.example
@@ -29,18 +35,17 @@ terraform.rc
 *.key
 *.p12
 *.pfx
-*.crt
-*.cer
 kubeconfig
 kubeconfig.*
 .kubeconfig
 *-kubeconfig.yaml
-secrets.yaml
-secrets.yml
-*-secret.yaml
-*-secret.yml
 sealed-secrets-key*
 scw-config.yaml
+
+# Convention projet : secrets locaux dans .secrets-local/
+**/.secrets-local/
+*.unsealed.yaml
+*.decrypted.yaml
 
 # ============================================================
 # Kubernetes / Helm
@@ -58,8 +63,6 @@ Chart.lock
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
 .history/
 
 # ============================================================
@@ -69,6 +72,7 @@ Thumbs.db
 .AppleDouble
 .LSOverride
 Desktop.ini
+Thumbs.db
 $RECYCLE.BIN/
 ._*
 .Spotlight-V100
@@ -84,8 +88,6 @@ ehthumbs.db
 *.bak
 *.orig
 .cache/
-dist/
-build/
 tmp/
 
 # ============================================================
@@ -98,6 +100,8 @@ yarn-error.log*
 .npm
 .yarn/cache
 .pnp.*
+dist/
+build/
 
 # ============================================================
 # Python
@@ -108,7 +112,6 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
-dist/
 .pytest_cache/
 
 # ============================================================
@@ -121,6 +124,6 @@ checkov-results.*
 tflint-report.*
 
 # ============================================================
-# Fichiers Claude Code (contexte local non versionné)
+# Claude Code (contexte local non versionné)
 # ============================================================
 .claude/

@@ -1,23 +1,6 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# DevOps Factory — Pipeline entry-point
+# DevOps Factory — Application pipeline (build / scan / deploy)
 # ──────────────────────────────────────────────────────────────────────────────
-# Prerequisites (GitLab Settings → CI/CD → Variables):
-#   SCW_ACCESS_KEY       protected + masked
-#   SCW_SECRET_KEY       protected + masked
-#   SCW_DEFAULT_PROJECT_ID  protected
-# See docs/runbooks/gitlab-ci-variables.md for setup instructions.
+# TODO: define build, Trivy scan, and ArgoCD sync jobs for the three tenants
+# (alpha, beta, gamma) once the Kapsule cluster is provisioned via infra.gitlab-ci.yml.
 # ──────────────────────────────────────────────────────────────────────────────
-
-stages:
-  - bootstrap
-  - validate
-  - security
-  - plan
-  - build
-  - scan
-  - apply
-  - deploy
-
-include:
-  - local: .gitlab/ci/infra.gitlab-ci.yml
-  - local: .gitlab/ci/apps.gitlab-ci.yml

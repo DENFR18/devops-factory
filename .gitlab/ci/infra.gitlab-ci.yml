@@ -1,0 +1,374 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# DevOps Factory — Terraform infrastructure pipeline
+# ──────────────────────────────────────────────────────────────────────────────
+# Variables injected automatically by GitLab CI from CI/CD Settings:
+#   SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_PROJECT_ID
+#
+# The S3 backend (bucket name + endpoint) is declared in each environment's
+# backend.tf. This pipeline only injects credentials at init time.
+# ──────────────────────────────────────────────────────────────────────────────
+
+variables:
+  TF_ROOT: ${CI_PROJECT_DIR}/infra/terraform
+  TF_VERSION: "1.7.5"
+  SCW_DEFAULT_REGION: fr-par
+  SCW_DEFAULT_ZONE: fr-par-1
+  TF_STATE_BUCKET_DEV: devops-factory-tfstate-dev
+  TF_STATE_BUCKET_PROD: devops-factory-tfstate-prod
+
+# ── Job templates ──────────────────────────────────────────────────────────────
+
+# Full backend init — used by plan, apply, destroy.
+.terraform:
+  image:
+    name: hashicorp/terraform:${TF_VERSION}
+    entrypoint: [""]
+  before_script:
+    - export AWS_ACCESS_KEY_ID=${SCW_ACCESS_KEY}
+    - export AWS_SECRET_ACCESS_KEY=${SCW_SECRET_KEY}
+    - export TF_VAR_project_id=${SCW_DEFAULT_PROJECT_ID}
+    - cd ${TF_ROOT}/environments/${TF_ENV}
+    - |
+      terraform init \
+        -backend-config="access_key=${SCW_ACCESS_KEY}" \
+        -backend-config="secret_key=${SCW_SECRET_KEY}" \
+        -input=false \
+        -reconfigure
+
+# Backend-less init — used by fmt/validate. Bucket need not exist yet.
+.terraform-no-backend:
+  image:
+    name: hashicorp/terraform:${TF_VERSION}
+    entrypoint: [""]
+  before_script:
+    - export TF_VAR_project_id=${SCW_DEFAULT_PROJECT_ID}
+    - cd ${TF_ROOT}/environments/${TF_ENV}
+    - terraform init -backend=false -input=false
+
+.checkov:
+  image: bridgecrew/checkov:latest
+
+.tflint:
+  image: ghcr.io/terraform-linters/tflint:latest
+
+# Scaleway CLI — used by bootstrap and any operational jobs.
+.scaleway-cli:
+  image: scaleway/cli:latest
+  before_script:
+    - |
+      scw config set \
+        access-key=${SCW_ACCESS_KEY} \
+        secret-key=${SCW_SECRET_KEY} \
+        default-project-id=${SCW_DEFAULT_PROJECT_ID} \
+        default-region=${SCW_DEFAULT_REGION} \
+        default-zone=${SCW_DEFAULT_ZONE}
+
+# ── Stage: bootstrap ───────────────────────────────────────────────────────────
+
+bootstrap-state-buckets:
+  # ⭐ ONE-TIME SETUP — trigger manually on the very first project run.
+  #
+  # Creates the two Terraform remote state buckets on Scaleway Object Storage
+  # and configures them (versioning + lifecycle expiry for non-current versions).
+  #
+  # IDEMPOTENT: re-running this job on an already configured project is safe
+  # and produces no changes. After the first successful run it becomes a no-op.
+  #
+  # Scaleway Object Storage encrypts all objects at rest by default; no
+  # explicit SSE configuration is required.
+  stage: bootstrap
+  image: amazon/aws-cli:2.15.0
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+  allow_failure: false
+  before_script:
+    - export AWS_ACCESS_KEY_ID=${SCW_ACCESS_KEY}
+    - export AWS_SECRET_ACCESS_KEY=${SCW_SECRET_KEY}
+    - export AWS_DEFAULT_REGION=${SCW_DEFAULT_REGION}
+    - export SCW_S3_ENDPOINT="https://s3.${SCW_DEFAULT_REGION}.scw.cloud"
+  script:
+    - |
+      setup_bucket() {
+        local BUCKET="$1"
+        echo ""
+        echo "┌─────────────────────────────────────────────┐"
+        echo "│  Bucket: ${BUCKET}"
+        echo "└─────────────────────────────────────────────┘"
+
+        # 1. Create if it doesn't exist
+        if aws s3api head-bucket \
+             --bucket "${BUCKET}" \
+             --endpoint-url "${SCW_S3_ENDPOINT}" 2>/dev/null; then
+          echo "  ✓ Already exists — skipping creation"
+        else
+          echo "  → Creating bucket..."
+          aws s3api create-bucket \
+            --bucket "${BUCKET}" \
+            --endpoint-url "${SCW_S3_ENDPOINT}"
+          echo "  ✓ Created"
+        fi
+
+        # 2. Enable versioning
+        echo "  → Enabling versioning..."
+        aws s3api put-bucket-versioning \
+          --bucket "${BUCKET}" \
+          --endpoint-url "${SCW_S3_ENDPOINT}" \
+          --versioning-configuration Status=Enabled
+        echo "  ✓ Versioning enabled"
+
+        # 3. Lifecycle: non-current versions expire after 90 days
+        echo "  → Applying lifecycle policy (non-current versions expire after 90 days)..."
+        aws s3api put-bucket-lifecycle-configuration \
+          --bucket "${BUCKET}" \
+          --endpoint-url "${SCW_S3_ENDPOINT}" \
+          --lifecycle-configuration '{
+            "Rules": [{
+              "ID": "expire-noncurrent-versions",
+              "Status": "Enabled",
+              "Filter": {"Prefix": ""},
+              "NoncurrentVersionExpiration": {"NoncurrentDays": 90}
+            }]
+          }'
+        echo "  ✓ Lifecycle policy applied"
+
+        # 4. Encryption is enabled by default on Scaleway Object Storage (SSE-S3 equivalent)
+        echo "  ✓ Encryption: Scaleway default at-rest encryption active"
+      }
+
+      setup_bucket "${TF_STATE_BUCKET_DEV}"
+      setup_bucket "${TF_STATE_BUCKET_PROD}"
+
+      echo ""
+      echo "════════════════════════════════════════════════"
+      echo "  Bootstrap complete"
+      echo "  dev  → ${TF_STATE_BUCKET_DEV}"
+      echo "  prod → ${TF_STATE_BUCKET_PROD}"
+      echo ""
+      echo "  Next: push a Terraform change and watch"
+      echo "  the validate + plan stages run automatically."
+      echo "════════════════════════════════════════════════"
+
+# ── Stage: validate ────────────────────────────────────────────────────────────
+
+# Runs from TF_ROOT — does not extend .terraform-no-backend (no env subdir needed).
+terraform-fmt:
+  stage: validate
+  image:
+    name: hashicorp/terraform:${TF_VERSION}
+    entrypoint: [""]
+  script:
+    - cd ${TF_ROOT}
+    - terraform fmt -check -recursive
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+
+terraform-validate-dev:
+  extends: .terraform-no-backend
+  stage: validate
+  variables:
+    TF_ENV: dev
+  script:
+    - terraform validate
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+
+terraform-validate-prod:
+  extends: .terraform-no-backend
+  stage: validate
+  variables:
+    TF_ENV: prod
+  script:
+    - terraform validate
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+
+tflint:
+  extends: .tflint
+  stage: validate
+  script:
+    - cd ${TF_ROOT}
+    - tflint --init
+    - tflint --recursive
+  # Advisory: checkov is the enforcement gate; tflint is informational.
+  allow_failure: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+
+# ── Stage: security ────────────────────────────────────────────────────────────
+
+checkov:
+  extends: .checkov
+  stage: security
+  script:
+    - mkdir -p reports
+    - |
+      checkov \
+        --directory "${TF_ROOT}" \
+        --framework terraform \
+        --compact \
+        --output cli \
+        --output junitxml \
+        --output sarif \
+        --output-file-path reports/ \
+        --soft-fail-on MEDIUM \
+        --soft-fail-on LOW \
+        --soft-fail-on INFO
+  artifacts:
+    when: always
+    reports:
+      junit: reports/results_junitxml.xml
+      sast: reports/results_sarif.sarif
+    paths:
+      - reports/
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+
+# ── Stage: plan ────────────────────────────────────────────────────────────────
+
+terraform-plan-dev:
+  extends: .terraform
+  stage: plan
+  variables:
+    TF_ENV: dev
+  cache:
+    key: tf-dev-${CI_COMMIT_REF_SLUG}
+    paths:
+      - ${TF_ROOT}/environments/dev/.terraform/
+    policy: pull-push
+  script:
+    - terraform plan -out=tfplan-dev -input=false
+    - terraform show -json tfplan-dev > tfplan-dev.json
+  artifacts:
+    name: tfplan-dev-${CI_COMMIT_SHORT_SHA}
+    paths:
+      - ${TF_ROOT}/environments/dev/tfplan-dev
+      - ${TF_ROOT}/environments/dev/tfplan-dev.json
+    reports:
+      terraform:
+        - ${TF_ROOT}/environments/dev/tfplan-dev.json
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+
+terraform-plan-prod:
+  extends: .terraform
+  stage: plan
+  variables:
+    TF_ENV: prod
+  cache:
+    key: tf-prod-${CI_COMMIT_REF_SLUG}
+    paths:
+      - ${TF_ROOT}/environments/prod/.terraform/
+    policy: pull-push
+  script:
+    - terraform plan -out=tfplan-prod -input=false
+    - terraform show -json tfplan-prod > tfplan-prod.json
+  artifacts:
+    name: tfplan-prod-${CI_COMMIT_SHORT_SHA}
+    paths:
+      - ${TF_ROOT}/environments/prod/tfplan-prod
+      - ${TF_ROOT}/environments/prod/tfplan-prod.json
+    reports:
+      terraform:
+        - ${TF_ROOT}/environments/prod/tfplan-prod.json
+    expire_in: 1 week
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ── Stage: apply ───────────────────────────────────────────────────────────────
+
+terraform-apply-dev:
+  extends: .terraform
+  stage: apply
+  variables:
+    TF_ENV: dev
+  cache:
+    key: tf-dev-${CI_COMMIT_REF_SLUG}
+    paths:
+      - ${TF_ROOT}/environments/dev/.terraform/
+    policy: pull
+  needs:
+    - job: terraform-plan-dev
+      artifacts: true
+  script:
+    - terraform apply -input=false tfplan-dev
+  environment:
+    name: dev
+    url: https://console.scaleway.com/kapsule/clusters
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+      when: manual
+  allow_failure: false
+
+terraform-apply-prod:
+  extends: .terraform
+  stage: apply
+  variables:
+    TF_ENV: prod
+  cache:
+    key: tf-prod-${CI_COMMIT_REF_SLUG}
+    paths:
+      - ${TF_ROOT}/environments/prod/.terraform/
+    policy: pull
+  needs:
+    - job: terraform-plan-prod
+      artifacts: true
+  script:
+    - terraform apply -input=false tfplan-prod
+  environment:
+    name: prod
+    url: https://console.scaleway.com/kapsule/clusters
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+  allow_failure: false
+
+# ── Destroy jobs (manual emergency teardown only) ──────────────────────────────
+
+.terraform-destroy:
+  extends: .terraform
+  stage: apply
+  when: manual
+  allow_failure: false
+  script:
+    - terraform plan -destroy -out=tfplan-destroy -input=false
+    - terraform apply -input=false tfplan-destroy
+
+terraform-destroy-dev:
+  extends: .terraform-destroy
+  variables:
+    TF_ENV: dev
+  cache:
+    key: tf-dev-${CI_COMMIT_REF_SLUG}
+    paths:
+      - ${TF_ROOT}/environments/dev/.terraform/
+    policy: pull
+  environment:
+    name: dev
+    action: stop
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+
+terraform-destroy-prod:
+  extends: .terraform-destroy
+  variables:
+    TF_ENV: prod
+  cache:
+    key: tf-prod-${CI_COMMIT_REF_SLUG}
+    paths:
+      - ${TF_ROOT}/environments/prod/.terraform/
+    policy: pull
+  environment:
+    name: prod
+    action: stop
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
