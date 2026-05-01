@@ -144,11 +144,11 @@ variables:
 .sonarcloud:
   stage: security
   extends: .sonar-scanner
+  # SONAR_TOKEN and SONAR_HOST_URL are read automatically from env vars by
+  # sonar-scanner — do NOT pass them as -D CLI args (exposes token in ps output).
   script:
     - sonar-scanner
-        -Dsonar.host.url="${SONAR_HOST_URL}"
-        -Dsonar.login="${SONAR_TOKEN}"
-        -Dsonar.projectBaseDir="apps/${SERVICE}"
+        -Dsonar.projectBaseDir="${CI_PROJECT_DIR}/apps/${SERVICE}"
         -Dsonar.qualitygate.wait=true
   allow_failure: false
   interruptible: true
