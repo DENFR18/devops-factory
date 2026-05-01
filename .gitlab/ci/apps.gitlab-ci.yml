@@ -1,10 +1,407 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# DevOps Factory — Application pipeline (build / scan / deploy)
-# Sera complété au Prompt 3 (pipeline app DevSecOps)
+# DevOps Factory — Application pipeline (DevSecOps)
+#
+# Stages : validate → security → build → scan → push
+# NOTE: the deploy stage (update-manifest) has been removed.
+# GitOps deployment is handled exclusively by GitHub Actions + ArgoCD.
+#
+# Activated on changes in apps/** only.
+# Each service has dedicated jobs with rules: changes: targeting its subdirectory,
+# so only the modified service(s) trigger their jobs on any given commit.
+#
+# Required CI/CD variables (Settings → CI/CD → Variables):
+#   SCW_ACCESS_KEY          protected + masked
+#   SCW_SECRET_KEY          protected + masked
+#   SCW_DEFAULT_PROJECT_ID  protected
+#   SONAR_TOKEN             masked
+#   SONAR_HOST_URL          https://sonarcloud.io
+#   SCR_NAMESPACE           devops-factory (or your registry namespace)
+#
+# Note on latest tag: CLAUDE.md prohibits the `latest` tag on any image.
+# push-scr uses a rolling branch tag (e.g. `develop`, `main`) instead.
+#
+# Note on docker:dind: docker-build requires privileged runners (docker:dind).
+# This is the only documented exception to the no-privileged rule in CLAUDE.md.
+# Alternative: migrate to Kaniko for non-privileged builds.
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Placeholder — keeps this included file valid until app jobs are implemented.
-# GitLab rejects an include: local: file that is empty or comment-only.
-.apps-not-yet-implemented:
+variables:
+  SCR_REGISTRY: rg.fr-par.scw.cloud
+  # SCR_NAMESPACE must be set as a protected CI/CD variable in GitLab settings.
+  # It corresponds to the Scaleway Container Registry namespace created by Terraform.
+
+# ── Job templates ──────────────────────────────────────────────────────────────
+
+# Python application template — shared by lint, test, sonarcloud.
+# Pin python:3.12-slim to digest in production:
+#   docker pull python:3.12-slim && docker inspect --format='{{index .RepoDigests 0}}' python:3.12-slim
+.python-app:
+  image: python:3.12-slim
+  variables:
+    PIP_CACHE_DIR: "${CI_PROJECT_DIR}/apps/${SERVICE}/.pip-cache"
+  cache:
+    key: "pip-${SERVICE}-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - apps/${SERVICE}/.pip-cache/
+    policy: pull-push
+  before_script:
+    - cd apps/${SERVICE}
+    - pip install --quiet -r requirements-dev.txt
+
+# Docker build template — requires privileged runner (docker:dind).
+# Pin docker:25-cli to digest in production:
+#   docker pull docker:25-cli && docker inspect --format='{{index .RepoDigests 0}}' docker:25-cli
+.docker-build:
+  image: docker:25-cli
+  services:
+    - name: docker:25-dind
+      alias: docker
+  variables:
+    # TLS-enabled connection to the Docker daemon (port 2376).
+    # The runner mounts /certs as a shared volume between job and dind service.
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: /certs
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: $DOCKER_TLS_CERTDIR/client
+    DOCKER_BUILDKIT: "1"
+    IMAGE_REF: "${SCR_REGISTRY}/${SCR_NAMESPACE}/${SERVICE}:${CI_COMMIT_SHA}"
+  before_script:
+    - echo "${SCW_SECRET_KEY}" | docker login -u nologin --password-stdin "${SCR_REGISTRY}"
+
+# Trivy template — filesystem and image scanning.
+# Pin aquasec/trivy to digest in production:
+#   docker pull aquasec/trivy:0.57.1 && docker inspect --format='{{index .RepoDigests 0}}' aquasec/trivy:0.57.1
+.trivy:
+  image:
+    name: aquasec/trivy:0.57.1
+    entrypoint: [""]
+  variables:
+    TRIVY_NO_PROGRESS: "true"
+    TRIVY_CACHE_DIR: "${CI_PROJECT_DIR}/.trivy-cache"
+  cache:
+    key: trivy-db
+    paths:
+      - .trivy-cache/
+    policy: pull-push
+
+# Checkov template — IaC and Dockerfile scanning.
+.checkov:
+  image:
+    name: bridgecrew/checkov:3.2.232
+    entrypoint: [""]
+
+# SonarScanner template.
+# Pin sonar-scanner-cli to digest in production.
+.sonar-scanner:
+  image:
+    name: sonarsource/sonar-scanner-cli:11
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: "0"
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+  cache:
+    key: "sonar-${SERVICE}"
+    paths:
+      - .sonar/cache/
+    policy: pull-push
+
+# ── Stage: validate ────────────────────────────────────────────────────────────
+
+# lint template
+.lint:
+  stage: validate
+  extends: .python-app
   script:
-    - echo "App pipeline (build / Trivy scan / ArgoCD sync) not yet implemented"
+    - ruff check .
+    - black --check .
+  interruptible: true
+
+# test template
+.test:
+  stage: validate
+  extends: .python-app
+  script:
+    - pytest
+        --cov=.
+        --cov-report=xml:coverage.xml
+        --cov-report=term-missing
+        --cov-fail-under=70
+        --junitxml=junit.xml
+        -v
+  artifacts:
+    when: always
+    expire_in: 1 week
+    reports:
+      junit: apps/${SERVICE}/junit.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: apps/${SERVICE}/coverage.xml
+    paths:
+      - apps/${SERVICE}/coverage.xml
+      - apps/${SERVICE}/junit.xml
+  coverage: '/(?i)TOTAL.*\s+(\d+%)$/'
+  interruptible: true
+
+# ── Stage: security ────────────────────────────────────────────────────────────
+
+# sonarcloud template
+.sonarcloud:
+  stage: security
+  extends: .sonar-scanner
+  # SONAR_TOKEN and SONAR_HOST_URL are read automatically from env vars by
+  # sonar-scanner — do NOT pass them as -D CLI args (exposes token in ps output).
+  script:
+    - sonar-scanner
+        -Dsonar.projectBaseDir="${CI_PROJECT_DIR}/apps/${SERVICE}"
+        -Dsonar.qualitygate.wait=true
+  allow_failure: false
+  interruptible: true
+
+# trivy-fs template — scans Python dependencies (requirements.txt / pyproject.toml)
+.trivy-fs:
+  stage: security
+  extends: .trivy
+  script:
+    - mkdir -p reports
+    - trivy fs
+        --scanners vuln,secret
+        --severity HIGH,CRITICAL
+        --format sarif
+        --output reports/trivy-fs.sarif
+        --exit-code 1
+        apps/${SERVICE}/
+  artifacts:
+    when: always
+    expire_in: 1 week
+    reports:
+      sast: reports/trivy-fs.sarif
+    paths:
+      - reports/trivy-fs.sarif
+  interruptible: true
+
+# checkov-app template — scans Dockerfile + Kubernetes manifests for the service
+.checkov-app:
+  stage: security
+  extends: .checkov
+  script:
+    - mkdir -p reports
+    - checkov
+        --directory "apps/${SERVICE}"
+        --framework dockerfile
+        --compact
+        --output sarif
+        --output-file-path reports/
+        --soft-fail-on MEDIUM,LOW,INFO
+    - |
+      if [ -d "k8s/tenants/${TENANT}" ]; then
+        checkov
+          --directory "k8s/tenants/${TENANT}"
+          --framework kubernetes
+          --compact
+          --output sarif
+          --output-file-path reports/k8s-
+          --soft-fail-on MEDIUM,LOW,INFO
+      fi
+  artifacts:
+    when: always
+    expire_in: 1 week
+    reports:
+      sast: reports/results_sarif.sarif
+    paths:
+      - reports/
+  interruptible: true
+
+# ── Stage: build ───────────────────────────────────────────────────────────────
+
+# docker-build template — builds and loads image locally for scanning.
+# The image is NOT pushed here; push-scr handles the final push after trivy-image.
+.docker-build-job:
+  stage: build
+  extends: .docker-build
+  script:
+    - docker build
+        --tag "${IMAGE_REF}"
+        --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}"
+        --label "org.opencontainers.image.source=${CI_PROJECT_URL}"
+        --file "apps/${SERVICE}/Dockerfile"
+        "apps/${SERVICE}/"
+    - docker save "${IMAGE_REF}" | gzip > "${CI_PROJECT_DIR}/image-${SERVICE}.tar.gz"
+  artifacts:
+    name: "image-${SERVICE}-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - image-${SERVICE}.tar.gz
+    expire_in: 1 hour
+  interruptible: true
+
+# ── Stage: scan ────────────────────────────────────────────────────────────────
+
+# trivy-image template — scans the built image tarball.
+.trivy-image:
+  stage: scan
+  extends: .trivy
+  script:
+    - mkdir -p reports
+    - trivy image
+        --input "image-${SERVICE}.tar.gz"
+        --scanners vuln
+        --severity HIGH,CRITICAL
+        --ignore-unfixed
+        --ignorefile "apps/${SERVICE}/.trivyignore"
+        --format sarif
+        --output reports/trivy-image.sarif
+        --exit-code 1
+  artifacts:
+    when: always
+    expire_in: 1 week
+    reports:
+      sast: reports/trivy-image.sarif
+    paths:
+      - reports/trivy-image.sarif
+  interruptible: true
+
+# ── Stage: push ────────────────────────────────────────────────────────────────
+
+# push-scr template — tags and pushes the image to Scaleway SCR.
+# Tags pushed:
+#   :<CI_COMMIT_SHA>          — immutable, always
+#   :<branch-slug>            — rolling branch tag (e.g. "develop", "main")
+#   :<CI_COMMIT_TAG>          — SemVer tag if a git tag triggered the pipeline
+#
+# NOTE: "latest" tag is explicitly prohibited by CLAUDE.md.
+# Use the rolling branch tag (<branch-slug>) for "latest-on-branch" semantics.
+.push-scr:
+  stage: push
+  extends: .docker-build
+  script:
+    - docker load < "image-${SERVICE}.tar.gz"
+    - BRANCH_TAG="${CI_COMMIT_REF_SLUG}"
+    - docker tag "${IMAGE_REF}" "${SCR_REGISTRY}/${SCR_NAMESPACE}/${SERVICE}:${BRANCH_TAG}"
+    - docker push "${IMAGE_REF}"
+    - docker push "${SCR_REGISTRY}/${SCR_NAMESPACE}/${SERVICE}:${BRANCH_TAG}"
+    - |
+      if [ -n "${CI_COMMIT_TAG}" ]; then
+        docker tag "${IMAGE_REF}" "${SCR_REGISTRY}/${SCR_NAMESPACE}/${SERVICE}:${CI_COMMIT_TAG}"
+        docker push "${SCR_REGISTRY}/${SCR_NAMESPACE}/${SERVICE}:${CI_COMMIT_TAG}"
+        echo "Pushed SemVer tag: ${CI_COMMIT_TAG}"
+      fi
+    - echo "Pushed ${IMAGE_REF} and :${BRANCH_TAG}"
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Service Alpha jobs
+# Tenant: alpha
+# Path:   apps/service-alpha/
+# ══════════════════════════════════════════════════════════════════════════════
+
+lint:alpha:
+  extends: .lint
+  variables:
+    SERVICE: service-alpha
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - apps/service-alpha/**/*
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+      changes:
+        - apps/service-alpha/**/*
+    - if: $CI_COMMIT_TAG
+
+test:alpha:
+  extends: .test
+  variables:
+    SERVICE: service-alpha
+  needs: [lint:alpha]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - apps/service-alpha/**/*
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+      changes:
+        - apps/service-alpha/**/*
+    - if: $CI_COMMIT_TAG
+
+sonarcloud:alpha:
+  extends: .sonarcloud
+  variables:
+    SERVICE: service-alpha
+  needs: [lint:alpha, test:alpha]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - apps/service-alpha/**/*
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+      changes:
+        - apps/service-alpha/**/*
+
+trivy-fs:alpha:
+  extends: .trivy-fs
+  variables:
+    SERVICE: service-alpha
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - apps/service-alpha/**/*
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+      changes:
+        - apps/service-alpha/**/*
+    - if: $CI_COMMIT_TAG
+
+checkov-app:alpha:
+  extends: .checkov-app
+  variables:
+    SERVICE: service-alpha
+    TENANT: alpha
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - apps/service-alpha/**/*
+        - k8s/tenants/alpha/**/*
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+      changes:
+        - apps/service-alpha/**/*
+        - k8s/tenants/alpha/**/*
+
+docker-build:alpha:
+  extends: .docker-build-job
+  variables:
+    SERVICE: service-alpha
+  needs: [test:alpha, trivy-fs:alpha, checkov-app:alpha]
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+      changes:
+        - apps/service-alpha/**/*
+    - if: $CI_COMMIT_TAG
+
+trivy-image:alpha:
+  extends: .trivy-image
+  variables:
+    SERVICE: service-alpha
+  needs:
+    - job: docker-build:alpha
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+      changes:
+        - apps/service-alpha/**/*
+    - if: $CI_COMMIT_TAG
+
+push-scr:alpha:
+  extends: .push-scr
+  variables:
+    SERVICE: service-alpha
+  needs:
+    - job: docker-build:alpha
+      artifacts: true
+    - job: trivy-image:alpha
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
+      changes:
+        - apps/service-alpha/**/*
+    - if: $CI_COMMIT_TAG
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Service Beta and Gamma — add jobs here following the same pattern as Alpha.
+# Copy the Alpha block, replace service-alpha → service-beta/gamma,
+# alpha → beta/gamma in job names and TENANT variable.
+# ══════════════════════════════════════════════════════════════════════════════

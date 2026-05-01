@@ -30,8 +30,6 @@ variables:
     - cd ${TF_ROOT}/environments/${TF_ENV}
     - |
       terraform init \
-        -backend-config="access_key=${SCW_ACCESS_KEY}" \
-        -backend-config="secret_key=${SCW_SECRET_KEY}" \
         -input=false \
         -reconfigure
 
@@ -52,16 +50,10 @@ variables:
   image: ghcr.io/terraform-linters/tflint:latest
 
 # Scaleway CLI — used by bootstrap and any operational jobs.
+# The CLI reads SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_PROJECT_ID,
+# SCW_DEFAULT_REGION, SCW_DEFAULT_ZONE from environment automatically.
 .scaleway-cli:
   image: scaleway/cli:latest
-  before_script:
-    - |
-      scw config set \
-        access-key=${SCW_ACCESS_KEY} \
-        secret-key=${SCW_SECRET_KEY} \
-        default-project-id=${SCW_DEFAULT_PROJECT_ID} \
-        default-region=${SCW_DEFAULT_REGION} \
-        default-zone=${SCW_DEFAULT_ZONE}
 
 # ── Stage: bootstrap ───────────────────────────────────────────────────────────
 
