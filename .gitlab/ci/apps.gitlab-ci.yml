@@ -1,10 +1,10 @@
-"
 # ──────────────────────────────────────────────────────────────────────────────
 # DevOps Factory — Application pipeline (build / scan / deploy)
 # Sera complété au Prompt 3 (pipeline app DevSecOps)
 # ──────────────────────────────────────────────────────────────────────────────
 
-workflow:
-  rules:
-    - when: never
-"
+# Placeholder — keeps this included file valid until app jobs are implemented.
+# GitLab rejects an include: local: file that is empty or comment-only.
+.apps-not-yet-implemented:
+  script:
+    - echo "App pipeline (build / Trivy scan / ArgoCD sync) not yet implemented"
