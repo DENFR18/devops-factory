@@ -62,7 +62,7 @@ variables:
     DOCKER_BUILDKIT: "1"
     IMAGE_REF: "${SCR_REGISTRY}/${SCR_NAMESPACE}/${SERVICE}:${CI_COMMIT_SHA}"
   before_script:
-    - docker login -u nologin -p "${SCW_SECRET_KEY}" "${SCR_REGISTRY}"
+    - echo "${SCW_SECRET_KEY}" | docker login -u nologin --password-stdin "${SCR_REGISTRY}"
 
 # Trivy template — filesystem and image scanning.
 # Pin aquasec/trivy to digest in production:
