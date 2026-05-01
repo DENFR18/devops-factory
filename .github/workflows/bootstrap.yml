@@ -1,0 +1,172 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Bootstrap — State Buckets
+#
+# ONE-TIME SETUP — run this workflow ONCE on project initialization via the
+# "Run workflow" button in the GitHub Actions UI.
+#
+# What it does:
+#   Creates devops-factory-tfstate-dev and devops-factory-tfstate-prod on
+#   Scaleway Object Storage with versioning enabled and a 90-day lifecycle
+#   policy that expires non-current object versions.
+#
+# IDEMPOTENT: re-running on an already configured project is safe and produces
+#   no changes. Each step checks for existing state before acting.
+#
+# Prerequisites (GitHub Secrets to configure once in Settings → Secrets → Actions):
+#   - SCW_ACCESS_KEY
+#   - SCW_SECRET_KEY
+#   - SCW_DEFAULT_PROJECT_ID
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Bootstrap — State Buckets
+
+on:
+  workflow_dispatch:
+
+env:
+  SCW_DEFAULT_REGION: fr-par
+  SCW_DEFAULT_ZONE: fr-par-1
+  TF_STATE_BUCKET_DEV: devops-factory-tfstate-dev
+  TF_STATE_BUCKET_PROD: devops-factory-tfstate-prod
+  SCW_S3_ENDPOINT: https://s3.fr-par.scw.cloud
+
+jobs:
+  create-state-buckets:
+    name: Create Terraform state buckets
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Configure AWS CLI for Scaleway Object Storage
+        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3e54715 # v4.0.1
+        with:
+          aws-access-key-id: ${{ secrets.SCW_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.SCW_SECRET_KEY }}
+          aws-region: fr-par
+
+      - name: Set up state bucket (dev)
+        env:
+          BUCKET: ${{ env.TF_STATE_BUCKET_DEV }}
+        run: |
+          set -euo pipefail
+
+          echo "┌─────────────────────────────────────────────┐"
+          echo "│  Bucket: ${BUCKET}"
+          echo "└─────────────────────────────────────────────┘"
+
+          # 1. Create if it doesn't exist
+          if aws s3api head-bucket \
+               --bucket "${BUCKET}" \
+               --endpoint-url "${SCW_S3_ENDPOINT}" 2>/dev/null; then
+            echo "  ✓ Already exists — skipping creation"
+          else
+            echo "  → Creating bucket..."
+            aws s3api create-bucket \
+              --bucket "${BUCKET}" \
+              --endpoint-url "${SCW_S3_ENDPOINT}"
+            echo "  ✓ Created"
+          fi
+
+          # 2. Enable versioning
+          echo "  → Enabling versioning..."
+          aws s3api put-bucket-versioning \
+            --bucket "${BUCKET}" \
+            --endpoint-url "${SCW_S3_ENDPOINT}" \
+            --versioning-configuration Status=Enabled
+          echo "  ✓ Versioning enabled"
+
+          # 3. Lifecycle: non-current versions expire after 90 days
+          echo "  → Applying lifecycle policy (non-current versions expire after 90 days)..."
+          aws s3api put-bucket-lifecycle-configuration \
+            --bucket "${BUCKET}" \
+            --endpoint-url "${SCW_S3_ENDPOINT}" \
+            --lifecycle-configuration '{
+              "Rules": [{
+                "ID": "expire-noncurrent-versions",
+                "Status": "Enabled",
+                "Filter": {"Prefix": ""},
+                "NoncurrentVersionExpiration": {"NoncurrentDays": 90}
+              }]
+            }'
+          echo "  ✓ Lifecycle policy applied"
+
+          # 4. Encryption: Scaleway Object Storage applies at-rest encryption by
+          #    default (SSE-S3 equivalent) — no additional configuration required.
+          echo "  ✓ Encryption: Scaleway default at-rest encryption active"
+
+      - name: Set up state bucket (prod)
+        env:
+          BUCKET: ${{ env.TF_STATE_BUCKET_PROD }}
+        run: |
+          set -euo pipefail
+
+          echo "┌─────────────────────────────────────────────┐"
+          echo "│  Bucket: ${BUCKET}"
+          echo "└─────────────────────────────────────────────┘"
+
+          if aws s3api head-bucket \
+               --bucket "${BUCKET}" \
+               --endpoint-url "${SCW_S3_ENDPOINT}" 2>/dev/null; then
+            echo "  ✓ Already exists — skipping creation"
+          else
+            echo "  → Creating bucket..."
+            aws s3api create-bucket \
+              --bucket "${BUCKET}" \
+              --endpoint-url "${SCW_S3_ENDPOINT}"
+            echo "  ✓ Created"
+          fi
+
+          echo "  → Enabling versioning..."
+          aws s3api put-bucket-versioning \
+            --bucket "${BUCKET}" \
+            --endpoint-url "${SCW_S3_ENDPOINT}" \
+            --versioning-configuration Status=Enabled
+          echo "  ✓ Versioning enabled"
+
+          echo "  → Applying lifecycle policy (non-current versions expire after 90 days)..."
+          aws s3api put-bucket-lifecycle-configuration \
+            --bucket "${BUCKET}" \
+            --endpoint-url "${SCW_S3_ENDPOINT}" \
+            --lifecycle-configuration '{
+              "Rules": [{
+                "ID": "expire-noncurrent-versions",
+                "Status": "Enabled",
+                "Filter": {"Prefix": ""},
+                "NoncurrentVersionExpiration": {"NoncurrentDays": 90}
+              }]
+            }'
+          echo "  ✓ Lifecycle policy applied"
+          echo "  ✓ Encryption: Scaleway default at-rest encryption active"
+
+      - name: Verify and summarize
+        run: |
+          set -euo pipefail
+
+          summarize_bucket() {
+            local BUCKET="$1"
+            local VERSIONING
+            VERSIONING=$(aws s3api get-bucket-versioning \
+              --bucket "${BUCKET}" \
+              --endpoint-url "${SCW_S3_ENDPOINT}" \
+              --query 'Status' --output text 2>/dev/null || echo "Unknown")
+
+            echo "  ${BUCKET}"
+            echo "    URL:        ${SCW_S3_ENDPOINT}/${BUCKET}"
+            echo "    Versioning: ${VERSIONING}"
+          }
+
+          echo ""
+          echo "════════════════════════════════════════════════"
+          echo "  Bootstrap complete"
+          echo ""
+          summarize_bucket "${TF_STATE_BUCKET_DEV}"
+          echo ""
+          summarize_bucket "${TF_STATE_BUCKET_PROD}"
+          echo ""
+          echo "  Next steps:"
+          echo "  1. Open a PR with a Terraform change"
+          echo "  2. infra.yml triggers automatically → plan in PR comments"
+          echo "  3. Merge → approve terraform-apply-dev"
+          echo "════════════════════════════════════════════════"

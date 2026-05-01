@@ -1,7 +1,7 @@
 # DevOps Factory
 
 Usine logicielle DevSecOps multi-tenant déployée sur **Scaleway Kapsule** (fr-par).
-Pipeline GitLab CI/CD, GitOps via ArgoCD app-of-apps, IaC Terraform.
+Pipeline GitHub Actions, GitOps via ArgoCD app-of-apps, IaC Terraform.
 
 ---
 
@@ -9,17 +9,10 @@ Pipeline GitLab CI/CD, GitOps via ArgoCD app-of-apps, IaC Terraform.
 
 > No local CLI tools required. Everything runs in the pipeline.
 
-### Prerequisites
-
-- A GitLab account with access to this repository.
-- A [Scaleway](https://console.scaleway.com) account with a Project created.
-
-### Steps
-
-**1. Fork or clone the repo**
+**1. Fork the repo**
 
 ```bash
-git clone https://gitlab.com/<your-namespace>/devops-factory.git
+git clone https://github.com/<your-namespace>/devops-factory.git
 cd devops-factory
 ```
 
@@ -32,38 +25,38 @@ cd devops-factory
    - `KapsuleFullAccess`
    - `RegistryFullAccess`
 
-**3. Add the 3 CI/CD variables in GitLab**
+**3. Add the 3 secrets in GitHub Settings → Secrets → Actions**
 
-Navigate to **Settings → CI/CD → Variables** and add:
+Navigate to **Settings → Secrets and variables → Actions** and add:
 
-| Variable | Protected | Masked |
-|---|:---:|:---:|
-| `SCW_ACCESS_KEY` | ✅ | ✅ |
-| `SCW_SECRET_KEY` | ✅ | ✅ |
-| `SCW_DEFAULT_PROJECT_ID` | ✅ | ❌ |
+| Secret | Description |
+|---|---|
+| `SCW_ACCESS_KEY` | Scaleway IAM access key |
+| `SCW_SECRET_KEY` | Scaleway IAM secret key |
+| `SCW_DEFAULT_PROJECT_ID` | Scaleway project UUID |
 
-See [`docs/runbooks/gitlab-ci-variables.md`](docs/runbooks/gitlab-ci-variables.md) for step-by-step screenshots and the key rotation procedure.
+That's all a human needs to set manually. See [`docs/runbooks/github-actions-secrets.md`](docs/runbooks/github-actions-secrets.md) for the full procedure including environment setup, key rotation, and collaborator onboarding.
 
-**4. Bootstrap the Terraform state buckets (once)**
+**4. Run the workflow "Bootstrap — State Buckets" (once)**
 
-Push to `main` (or open a MR targeting `main`), then in **CI/CD → Pipelines**:
+Go to **Actions → Bootstrap — State Buckets → Run workflow**.
 
-- Find the `bootstrap` stage → click the ▶ button on `bootstrap-state-buckets`.
+This creates `devops-factory-tfstate-dev` and `devops-factory-tfstate-prod` on Scaleway Object Storage with versioning and 90-day lifecycle expiry. The workflow is idempotent — safe to re-run.
 
-This creates `devops-factory-tfstate-dev` and `devops-factory-tfstate-prod` on Scaleway Object Storage with versioning and 90-day lifecycle expiry. The job is idempotent — re-running it on an already configured project is safe.
+**5. Open a PR with a Terraform change**
 
-**5. Open a MR with a Terraform change**
+The `infra.yml` workflow triggers automatically and runs:
+- `terraform fmt` + `terraform validate` (both envs)
+- `tflint` (informational)
+- `checkov` security scan → results in GitHub Security tab
+- `terraform plan` for dev (and prod on PRs to `main`) → summary posted as PR comment
 
-The pipeline automatically runs:
-- `terraform fmt` → `terraform validate` → `tflint` (validate stage)
-- `checkov` security scan (security stage)
-- `terraform-plan-dev` with GitLab Terraform report in the MR (plan stage)
+**6. Merge → approve the apply → cluster up in ~10 min**
 
-**6. Merge the MR → apply to dev**
+After merge to `main` or `develop`, the `terraform-apply-dev` job waits for
+approval in the **GitHub Environment `dev`**. Go to **Actions → the run → Review deployments** and approve.
 
-After merge to `main` or `develop`, trigger `terraform-apply-dev` manually from the pipeline UI.
-
-**7. Done.**
+**7. That's it. No local CLI required.**
 
 The Kapsule cluster, networking, and IAM are provisioned. ArgoCD bootstrapping is the next step (see `k8s/argocd/`).
 
@@ -78,7 +71,7 @@ The Kapsule cluster, networking, and IAM are provisioned. ArgoCD bootstrapping i
 | GitOps | ArgoCD 2.x — app-of-apps pattern |
 | Tenants | alpha · beta · gamma |
 | IaC | Terraform >= 1.7, S3 backend on Scaleway |
-| CI/CD | GitLab CI — `include:` + `extends:` pattern |
+| CI/CD | GitHub Actions — reusable workflows with `uses:` |
 | Secrets | Sealed Secrets (no plaintext secrets in repo) |
 | Ingress | NGINX Ingress + cert-manager + Let's Encrypt |
 | Observability | kube-prometheus-stack |
@@ -87,10 +80,11 @@ The Kapsule cluster, networking, and IAM are provisioned. ArgoCD bootstrapping i
 ## Repository structure
 
 ```
-.gitlab-ci.yml             # entry-point: includes infra + apps sub-pipelines
-.gitlab/ci/
-  infra.gitlab-ci.yml      # Terraform bootstrap → validate → security → plan → apply
-  apps.gitlab-ci.yml       # build → scan → deploy (ArgoCD sync)
+.github/
+  workflows/
+    bootstrap.yml          # one-time: create Scaleway state buckets
+    infra.yml              # Terraform: fmt → validate → tflint → checkov → plan → apply
+    apps.yml               # build → scan → deploy (ArgoCD sync) — coming soon
 infra/
   terraform/
     modules/               # reusable modules (kapsule-cluster, networking, iam, …)
@@ -103,32 +97,32 @@ k8s/
   argocd/                  # app-of-apps bootstrap
 docs/
   runbooks/
-    gitlab-ci-variables.md # variable setup, rotation, onboarding
+    github-actions-secrets.md  # secrets, environments, rotation, onboarding
 ```
 
 ## Pipeline stages
 
 ```
-bootstrap → validate → security → plan → build → scan → apply → deploy
+bootstrap → validate → security → plan → apply
+                                          ↑
+                              Requires GitHub Environment approval
 ```
 
-| Stage | Jobs |
+| Workflow | Jobs |
 |---|---|
-| bootstrap | `bootstrap-state-buckets` (manual, main only, one-time) |
-| validate | `terraform-fmt`, `terraform-validate-dev/prod`, `tflint` |
-| security | `checkov` (fails on HIGH/CRITICAL, warns on MEDIUM) |
-| plan | `terraform-plan-dev/prod` — GitLab Terraform report in MR |
-| build | _(apps pipeline — container builds)_ |
-| scan | _(apps pipeline — Trivy image scan)_ |
-| apply | `terraform-apply-dev/prod` (manual), `terraform-destroy-*` (manual) |
-| deploy | _(apps pipeline — ArgoCD sync)_ |
+| `bootstrap.yml` | `create-state-buckets` (manual, one-time, idempotent) |
+| `infra.yml` | `terraform-fmt`, `terraform-validate-dev/prod`, `tflint`, `checkov` |
+| `infra.yml` | `terraform-plan-dev/prod` — plan summary posted as PR comment |
+| `infra.yml` | `terraform-apply-dev/prod` — requires Environment approval |
+| `infra.yml` | `terraform-destroy-dev` — `workflow_dispatch` with confirm="destroy" only |
+| `apps.yml` | _(coming soon — container build, Trivy scan, ArgoCD sync)_ |
 
 ## Branch workflow
 
 | Branch | Role | Apply allowed |
 |---|---|---|
-| `main` | Production source of truth | dev ✅ prod ✅ (both manual) |
-| `develop` | Continuous integration | dev ✅ (manual) |
+| `main` | Production source of truth | dev ✅ prod ✅ (both require approval) |
+| `develop` | Continuous integration | dev ✅ (requires approval) |
 | `feat/*` `fix/*` | Feature/fix branches | plan + scan only |
 
-MRs to `main` trigger the full pipeline. Auto-merge is disabled — a human review is required.
+PRs to `main` trigger the full pipeline. Auto-merge is disabled — a human review is required.
