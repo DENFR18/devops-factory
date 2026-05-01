@@ -31,8 +31,8 @@ variable "max_size" {
   type        = number
   description = "Maximum number of nodes for the autoscaler"
   validation {
-    condition     = var.max_size >= var.min_size
-    error_message = "max_size must be >= min_size."
+    condition     = var.max_size >= 1
+    error_message = "max_size must be at least 1."
   }
 }
 

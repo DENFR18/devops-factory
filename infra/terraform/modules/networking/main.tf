@@ -1,10 +1,10 @@
 locals {
   name_prefix = "${var.project_name}-${var.env}"
   zone        = "${var.region}-1"
-  base_tags = {
-    env        = var.env
+  base_tags   = {
+    env          = var.env
     "managed-by" = "terraform"
-    project    = var.project_name
+    project      = var.project_name
   }
   # Scaleway VPC/network resources expect tags as list of "key:value" strings
   tag_list = [for k, v in merge(local.base_tags, var.tags) : "${k}:${v}"]

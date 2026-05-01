@@ -24,10 +24,10 @@ resource "scaleway_object_bucket" "app" {
   }
 
   tags = {
-    env          = var.env
-    "managed-by" = "terraform"
-    project      = var.project_name
-    purpose      = each.value.purpose
+    env           = var.env
+    "managed-by"  = "terraform"
+    project       = var.project_name
+    purpose       = each.value.purpose
     "cost-center" = "platform"
   }
 }

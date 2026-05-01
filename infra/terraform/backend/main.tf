@@ -12,9 +12,9 @@ resource "scaleway_object_bucket" "tfstate" {
   }
 
   tags = {
-    env         = var.env
-    "managed-by" = "terraform"
-    purpose     = "terraform-state"
+    env           = var.env
+    "managed-by"  = "terraform"
+    purpose       = "terraform-state"
     "cost-center" = "platform"
   }
 }
@@ -29,9 +29,9 @@ resource "scaleway_object_bucket" "tfplans" {
   }
 
   tags = {
-    env         = var.env
-    "managed-by" = "terraform"
-    purpose     = "terraform-plans"
+    env           = var.env
+    "managed-by"  = "terraform"
+    purpose       = "terraform-plans"
     "cost-center" = "platform"
   }
 }
