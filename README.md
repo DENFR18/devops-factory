@@ -62,6 +62,17 @@ The Kapsule cluster, networking, and IAM are provisioned. ArgoCD bootstrapping i
 
 ---
 
+## Day-to-day operations
+
+| Action | Workflow | Déclencheur |
+|---|---|---|
+| Créer les buckets state (1 seule fois) | Bootstrap — State Buckets | Manuel |
+| Déployer l'infra | Deploy Infrastructure | Manuel, choix env |
+| Détruire l'infra (fin de session) | Destroy Infrastructure | Manuel, confirmation `destroy` |
+| Valider un changement Terraform | Infrastructure — Terraform | Auto sur PR |
+
+---
+
 ## Architecture overview
 
 | Dimension | Detail |
