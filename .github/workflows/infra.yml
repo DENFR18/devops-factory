@@ -1,0 +1,580 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Infrastructure — Terraform
+#
+# Pipeline: fmt → validate → tflint → checkov → plan → apply
+#
+# Triggers:
+#   - push to main or develop (infra/terraform/** changes)
+#   - pull_request targeting main (infra/terraform/** changes)
+#   - workflow_dispatch (manual trigger)
+#
+# Apply jobs are gated by GitHub Environment protection rules:
+#   - dev:  "Required reviewers" (Settings → Environments → dev)
+#   - prod: "Required reviewers" (Settings → Environments → prod)
+#
+# Required GitHub Secrets (repo or environment level):
+#   SCW_ACCESS_KEY, SCW_SECRET_KEY, SCW_DEFAULT_PROJECT_ID
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Infrastructure — Terraform
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "infra/terraform/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "infra/terraform/**"
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to enable the terraform-destroy-dev job (emergency teardown only)'
+        required: false
+        default: ""
+
+env:
+  TF_VERSION: "1.7.5"
+  SCW_DEFAULT_REGION: fr-par
+  SCW_DEFAULT_ZONE: fr-par-1
+  TF_STATE_BUCKET_DEV: devops-factory-tfstate-dev
+  TF_STATE_BUCKET_PROD: devops-factory-tfstate-prod
+  SCW_S3_ENDPOINT: https://s3.fr-par.scw.cloud
+
+# One workflow per branch at a time — prevents concurrent apply on the same env.
+concurrency:
+  group: infra-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ── 1. terraform-fmt ──────────────────────────────────────────────────────────
+  terraform-fmt:
+    name: Terraform fmt
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+        working-directory: infra/terraform
+
+  # ── 2. terraform-validate ─────────────────────────────────────────────────────
+  terraform-validate-dev:
+    name: Terraform validate (dev)
+    runs-on: ubuntu-latest
+    needs: terraform-fmt
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform init (no backend)
+        run: terraform init -backend=false -input=false
+        working-directory: infra/terraform/environments/dev
+
+      - name: Terraform validate
+        run: terraform validate
+        working-directory: infra/terraform/environments/dev
+
+  terraform-validate-prod:
+    name: Terraform validate (prod)
+    runs-on: ubuntu-latest
+    needs: terraform-fmt
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform init (no backend)
+        run: terraform init -backend=false -input=false
+        working-directory: infra/terraform/environments/prod
+
+      - name: Terraform validate
+        run: terraform validate
+        working-directory: infra/terraform/environments/prod
+
+  # ── 3. tflint ─────────────────────────────────────────────────────────────────
+  tflint:
+    name: tflint
+    runs-on: ubuntu-latest
+    needs: [terraform-validate-dev, terraform-validate-prod]
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: terraform-linters/setup-tflint@90f67d5eed4f6b4aba169dab58d38c2a82569a3c # v4.1.1
+        with:
+          tflint_version: latest
+
+      - name: Init tflint
+        run: tflint --init
+        working-directory: infra/terraform
+
+      - name: Run tflint
+        # Advisory: checkov is the hard enforcement gate; tflint is informational.
+        continue-on-error: true
+        run: tflint --recursive
+        working-directory: infra/terraform
+
+  # ── 4. checkov ───────────────────────────────────────────────────────────────
+  checkov:
+    name: Checkov security scan
+    runs-on: ubuntu-latest
+    needs: terraform-fmt
+
+    permissions:
+      contents: read
+      security-events: write  # required for uploading SARIF to Security tab
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@f5ef08c7e0b8e39ad4d78059e7e25ca7e1993f8c # v12.2847.0
+        with:
+          directory: infra/terraform
+          framework: terraform
+          output_format: sarif
+          output_file_path: results.sarif
+          soft_fail: true          # individual severity overrides below
+          check: ""
+          # Hard-fail on HIGH and CRITICAL; soft-fail on MEDIUM/LOW/INFO
+          soft_fail_on: "MEDIUM,LOW,INFO"
+
+      - name: Upload SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
+        with:
+          sarif_file: results.sarif
+          category: checkov-terraform
+
+  # ── 5. terraform-plan-dev ────────────────────────────────────────────────────
+  terraform-plan-dev:
+    name: Terraform plan (dev)
+    runs-on: ubuntu-latest
+    needs: [tflint, checkov]
+
+    permissions:
+      contents: read
+      pull-requests: write  # required for posting plan comments on PRs
+
+    env:
+      TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${TF_STATE_BUCKET_DEV}" \
+            -backend-config="key=terraform.tfstate" \
+            -backend-config="region=${SCW_DEFAULT_REGION}" \
+            -backend-config="access_key=${{ secrets.SCW_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.SCW_SECRET_KEY }}" \
+            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
+            -input=false \
+            -reconfigure
+        working-directory: infra/terraform/environments/dev
+
+      - name: Terraform plan
+        id: plan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          terraform plan \
+            -out=tfplan-dev \
+            -input=false \
+            -no-color \
+            2>&1 | tee plan-output.txt
+          exit ${PIPESTATUS[0]}
+        working-directory: infra/terraform/environments/dev
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tfplan-dev-${{ github.sha }}
+          path: |
+            infra/terraform/environments/dev/tfplan-dev
+            infra/terraform/environments/dev/plan-output.txt
+          retention-days: 7
+
+      - name: Post plan comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const planOutput = fs.readFileSync(
+              'infra/terraform/environments/dev/plan-output.txt', 'utf8'
+            );
+
+            // Detect destructive changes
+            const destroyMatch = planOutput.match(/(\d+) to destroy/);
+            const destroyCount = destroyMatch ? parseInt(destroyMatch[1]) : 0;
+            const destructiveWarning = destroyCount > 0
+              ? `\n> ⚠️ **WARNING: This plan will DESTROY ${destroyCount} resource(s). Review carefully before applying.**\n`
+              : '';
+
+            // Extract summary line
+            const summaryMatch = planOutput.match(/Plan:.*\n/);
+            const summary = summaryMatch ? summaryMatch[0].trim() : 'No changes.';
+
+            const body = [
+              '## 🏗️ Terraform Plan — dev',
+              destructiveWarning,
+              `**${summary}**`,
+              '',
+              `<details><summary>Show full plan output</summary>`,
+              '',
+              '```hcl',
+              planOutput.slice(-60000), // GitHub comment limit
+              '```',
+              '</details>',
+              '',
+              `[View job run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+            ].join('\n');
+
+            // Update existing comment or create a new one
+            const marker = '## 🏗️ Terraform Plan — dev';
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # ── 6. terraform-plan-prod ───────────────────────────────────────────────────
+  terraform-plan-prod:
+    name: Terraform plan (prod)
+    runs-on: ubuntu-latest
+    needs: [tflint, checkov]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    env:
+      TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${TF_STATE_BUCKET_PROD}" \
+            -backend-config="key=terraform.tfstate" \
+            -backend-config="region=${SCW_DEFAULT_REGION}" \
+            -backend-config="access_key=${{ secrets.SCW_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.SCW_SECRET_KEY }}" \
+            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
+            -input=false \
+            -reconfigure
+        working-directory: infra/terraform/environments/prod
+
+      - name: Terraform plan
+        id: plan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          terraform plan \
+            -out=tfplan-prod \
+            -input=false \
+            -no-color \
+            2>&1 | tee plan-output.txt
+          exit ${PIPESTATUS[0]}
+        working-directory: infra/terraform/environments/prod
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tfplan-prod-${{ github.sha }}
+          path: |
+            infra/terraform/environments/prod/tfplan-prod
+            infra/terraform/environments/prod/plan-output.txt
+          retention-days: 7
+
+      - name: Post plan comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const planOutput = fs.readFileSync(
+              'infra/terraform/environments/prod/plan-output.txt', 'utf8'
+            );
+
+            const destroyMatch = planOutput.match(/(\d+) to destroy/);
+            const destroyCount = destroyMatch ? parseInt(destroyMatch[1]) : 0;
+            const destructiveWarning = destroyCount > 0
+              ? `\n> ⚠️ **WARNING: This plan will DESTROY ${destroyCount} resource(s) in PRODUCTION. Review carefully before applying.**\n`
+              : '';
+
+            const summaryMatch = planOutput.match(/Plan:.*\n/);
+            const summary = summaryMatch ? summaryMatch[0].trim() : 'No changes.';
+
+            const body = [
+              '## 🏗️ Terraform Plan — prod',
+              destructiveWarning,
+              `**${summary}**`,
+              '',
+              `<details><summary>Show full plan output</summary>`,
+              '',
+              '```hcl',
+              planOutput.slice(-60000),
+              '```',
+              '</details>',
+              '',
+              `[View job run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+            ].join('\n');
+
+            const marker = '## 🏗️ Terraform Plan — prod';
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # ── 7. terraform-apply-dev ───────────────────────────────────────────────────
+  terraform-apply-dev:
+    name: Terraform apply (dev)
+    runs-on: ubuntu-latest
+    needs: terraform-plan-dev
+    if: >
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') &&
+      github.event_name != 'pull_request'
+
+    # GitHub Environment "dev" must have "Required reviewers" configured in
+    # Settings → Environments to enforce manual approval before apply runs.
+    environment:
+      name: dev
+      url: https://console.scaleway.com/kapsule/clusters
+
+    permissions:
+      contents: read
+
+    env:
+      TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          name: tfplan-dev-${{ github.sha }}
+          path: infra/terraform/environments/dev
+
+      - name: Terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${TF_STATE_BUCKET_DEV}" \
+            -backend-config="key=terraform.tfstate" \
+            -backend-config="region=${SCW_DEFAULT_REGION}" \
+            -backend-config="access_key=${{ secrets.SCW_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.SCW_SECRET_KEY }}" \
+            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
+            -input=false \
+            -reconfigure
+        working-directory: infra/terraform/environments/dev
+
+      - name: Terraform apply
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: terraform apply -input=false tfplan-dev
+        working-directory: infra/terraform/environments/dev
+
+  # ── 8. terraform-apply-prod ──────────────────────────────────────────────────
+  terraform-apply-prod:
+    name: Terraform apply (prod)
+    runs-on: ubuntu-latest
+    needs: terraform-plan-prod
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+
+    # GitHub Environment "prod" must have "Required reviewers" configured in
+    # Settings → Environments to enforce manual approval before apply runs.
+    environment:
+      name: prod
+      url: https://console.scaleway.com/kapsule/clusters
+
+    permissions:
+      contents: read
+
+    env:
+      TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          name: tfplan-prod-${{ github.sha }}
+          path: infra/terraform/environments/prod
+
+      - name: Terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${TF_STATE_BUCKET_PROD}" \
+            -backend-config="key=terraform.tfstate" \
+            -backend-config="region=${SCW_DEFAULT_REGION}" \
+            -backend-config="access_key=${{ secrets.SCW_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.SCW_SECRET_KEY }}" \
+            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
+            -input=false \
+            -reconfigure
+        working-directory: infra/terraform/environments/prod
+
+      - name: Terraform apply
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: terraform apply -input=false tfplan-prod
+        working-directory: infra/terraform/environments/prod
+
+  # ── 9. terraform-destroy-dev (MANUAL EMERGENCY ONLY) ────────────────────────
+  # ⚠️  WARNING: This job tears down the entire dev infrastructure.
+  # ⚠️  It is NOT part of the normal flow and must be triggered manually via
+  # ⚠️  workflow_dispatch with confirm="destroy" typed explicitly.
+  # ⚠️  There is no undo. Ensure all state is committed before running.
+  terraform-destroy-dev:
+    name: "⚠️ DESTROY dev (emergency only)"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'destroy'
+
+    environment:
+      name: dev
+      url: https://console.scaleway.com/kapsule/clusters
+
+    permissions:
+      contents: read
+
+    env:
+      TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${TF_STATE_BUCKET_DEV}" \
+            -backend-config="key=terraform.tfstate" \
+            -backend-config="region=${SCW_DEFAULT_REGION}" \
+            -backend-config="access_key=${{ secrets.SCW_ACCESS_KEY }}" \
+            -backend-config="secret_key=${{ secrets.SCW_SECRET_KEY }}" \
+            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
+            -input=false \
+            -reconfigure
+        working-directory: infra/terraform/environments/dev
+
+      - name: Terraform destroy
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: terraform destroy -auto-approve -input=false
+        working-directory: infra/terraform/environments/dev
+

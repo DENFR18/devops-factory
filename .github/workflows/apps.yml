@@ -1,0 +1,17 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Applications — DevSecOps
+#
+# Placeholder — will be completed in the next iteration.
+# Planned stages: build → trivy-scan → push → argocd-sync
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Applications — DevSecOps
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Apps pipeline - coming soon (Prompt 3)"
