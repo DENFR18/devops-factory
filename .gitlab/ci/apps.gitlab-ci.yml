@@ -1,7 +1,9 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # DevOps Factory — Application pipeline (DevSecOps)
 #
-# Stages : validate → security → build → scan → push → deploy
+# Stages : validate → security → build → scan → push
+# NOTE: the deploy stage (update-manifest) has been removed.
+# GitOps deployment is handled exclusively by GitHub Actions + ArgoCD.
 #
 # Activated on changes in apps/** only.
 # Each service has dedicated jobs with rules: changes: targeting its subdirectory,
@@ -13,7 +15,6 @@
 #   SCW_DEFAULT_PROJECT_ID  protected
 #   SONAR_TOKEN             masked
 #   SONAR_HOST_URL          https://sonarcloud.io
-#   BOT_ACCESS_TOKEN        masked  — Project Access Token used by update-manifest
 #   SCR_NAMESPACE           devops-factory (or your registry namespace)
 #
 # Note on latest tag: CLAUDE.md prohibits the `latest` tag on any image.
@@ -285,39 +286,6 @@ variables:
       fi
     - echo "Pushed ${IMAGE_REF} and :${BRANCH_TAG}"
 
-# ── Stage: deploy ──────────────────────────────────────────────────────────────
-
-# update-manifest template — commits the new image tag into the Helm values file.
-# ArgoCD auto-sync picks up the change and deploys to the cluster.
-# Requires BOT_ACCESS_TOKEN CI/CD variable (GitLab Project Access Token).
-# Credentials are fed to git-credential-store via stdin (never on a CLI arg).
-.update-manifest:
-  stage: deploy
-  image: alpine/git:2.45.2
-  variables:
-    GIT_STRATEGY: fetch
-  script:
-    - git config user.email "ci-bot@devops-factory"
-    - git config user.name "devops-factory-bot [CI]"
-    - git config --global credential.helper "store --file ${HOME}/.git-credentials"
-    - printf 'protocol=https\nhost=%s\nusername=ci-bot\npassword=%s\n\n' "${CI_SERVER_HOST}" "${BOT_ACCESS_TOKEN}" | git credential-store --file "${HOME}/.git-credentials" store
-    - git remote set-url origin "https://${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
-    - |
-      VALUES_FILE="manifests/tenants/${TENANT}/values.yaml"
-      if [ ! -f "${VALUES_FILE}" ]; then
-        echo "ERROR: ${VALUES_FILE} not found"
-        exit 1
-      fi
-      sed -i "s|  tag:.*|  tag: \"${CI_COMMIT_SHA}\"|" "${VALUES_FILE}"
-      git add "${VALUES_FILE}"
-      if git diff --staged --quiet; then
-        echo "No change — image tag already at ${CI_COMMIT_SHA}"
-      else
-        git commit -m "chore(k8s): update ${SERVICE} image to ${CI_COMMIT_SHA} [skip ci]"
-        git push origin "HEAD:${CI_COMMIT_REF_NAME}"
-        echo "Manifest updated — ArgoCD will sync automatically"
-      fi
-
 # ══════════════════════════════════════════════════════════════════════════════
 # Service Alpha jobs
 # Tenant: alpha
@@ -426,18 +394,6 @@ push-scr:alpha:
     - job: docker-build:alpha
       artifacts: true
     - job: trivy-image:alpha
-  rules:
-    - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
-      changes:
-        - apps/service-alpha/**/*
-    - if: $CI_COMMIT_TAG
-
-update-manifest:alpha:
-  extends: .update-manifest
-  variables:
-    SERVICE: service-alpha
-    TENANT: alpha
-  needs: [push-scr:alpha]
   rules:
     - if: $CI_COMMIT_BRANCH =~ /^(main|develop)$/
       changes:
