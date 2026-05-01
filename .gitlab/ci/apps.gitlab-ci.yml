@@ -290,7 +290,7 @@ variables:
 # update-manifest template — commits the new image tag into the Helm values file.
 # ArgoCD auto-sync picks up the change and deploys to the cluster.
 # Requires BOT_ACCESS_TOKEN CI/CD variable (GitLab Project Access Token).
-# Token is injected via http.extraheader (no credentials in URL).
+# Credentials are fed to git-credential-store via stdin (never on a CLI arg).
 .update-manifest:
   stage: deploy
   image: alpine/git:2.45.2
@@ -299,7 +299,8 @@ variables:
   script:
     - git config user.email "ci-bot@devops-factory"
     - git config user.name "devops-factory-bot [CI]"
-    - git config --global http."https://${CI_SERVER_HOST}/".extraheader "PRIVATE-TOKEN: ${BOT_ACCESS_TOKEN}"
+    - git config --global credential.helper "store --file ${HOME}/.git-credentials"
+    - printf 'protocol=https\nhost=%s\nusername=ci-bot\npassword=%s\n\n' "${CI_SERVER_HOST}" "${BOT_ACCESS_TOKEN}" | git credential-store --file "${HOME}/.git-credentials" store
     - git remote set-url origin "https://${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
     - |
       VALUES_FILE="manifests/tenants/${TENANT}/values.yaml"
