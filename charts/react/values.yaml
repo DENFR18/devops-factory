@@ -1,5 +1,5 @@
 image:
-  repository: rg.fr-par.scw.cloud/devops-factory/react
+  repository: rg.fr-par.scw.cloud/devops-factory-dev/react
   tag: ""
   pullPolicy: IfNotPresent
 

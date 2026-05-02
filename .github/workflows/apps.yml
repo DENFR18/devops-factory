@@ -33,7 +33,7 @@ on:
 
 env:
   SCW_REGISTRY: rg.fr-par.scw.cloud
-  SCW_REGISTRY_NAMESPACE: devops-factory
+  SCW_REGISTRY_NAMESPACE: devops-factory-dev
 
 concurrency:
   group: apps-${{ github.ref }}
