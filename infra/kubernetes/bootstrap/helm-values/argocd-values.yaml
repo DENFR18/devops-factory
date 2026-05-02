@@ -1,5 +1,5 @@
 server:
-  insecure: false
+  insecure: true
   ingress:
     enabled: true
     ingressClassName: nginx
@@ -8,4 +8,4 @@ server:
 
 configs:
   params:
-    server.insecure: false
+    server.insecure: true

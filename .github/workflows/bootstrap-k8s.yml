@@ -412,8 +412,6 @@ jobs:
           metadata:
             name: argocd-nip-io
             namespace: argocd
-            annotations:
-              nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
           spec:
             ingressClassName: nginx
             rules:
@@ -426,7 +424,7 @@ jobs:
                         service:
                           name: argocd-server
                           port:
-                            number: 443
+                            number: 80
           EOF
 
           {
@@ -494,6 +492,18 @@ jobs:
           kubectl -n argocd patch secret argocd-secret \
             --type json \
             -p='[{"op":"remove","path":"/data/admin.passwordMtime"}]' || true
+
+          kubectl -n argocd patch configmap argocd-cmd-params-cm \
+            --type merge \
+            -p '{"data":{"server.insecure":"true"}}'
+
+          kubectl -n argocd patch ingress argocd-nip-io \
+            --type json \
+            -p='[{"op":"remove","path":"/metadata/annotations/nginx.ingress.kubernetes.io~1backend-protocol"}]' || true
+
+          kubectl -n argocd patch ingress argocd-nip-io \
+            --type json \
+            -p='[{"op":"replace","path":"/spec/rules/0/http/paths/0/backend/service/port/number","value":80}]' || true
 
           kubectl -n argocd rollout restart deployment/argocd-server
           kubectl -n argocd rollout status deployment/argocd-server --timeout=180s
