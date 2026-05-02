@@ -2,8 +2,7 @@
 # terraform.tfvars is in .gitignore — NEVER commit it.
 # PROD: any apply requires a validated plan and a manual approval in GitLab CI.
 
-project_id      = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-organization_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+project_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 # Network (different /20 from dev to avoid overlap)
 private_subnet_cidr = "10.1.0.0/20"

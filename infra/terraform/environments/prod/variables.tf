@@ -3,11 +3,6 @@ variable "project_id" {
   description = "Scaleway project ID (UUID)"
 }
 
-variable "organization_id" {
-  type        = string
-  description = "Scaleway organization ID (UUID) — required for IAM resources"
-}
-
 variable "private_subnet_cidr" {
   type        = string
   description = "CIDR for the private network"
