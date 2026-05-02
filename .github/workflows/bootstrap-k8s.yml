@@ -11,6 +11,7 @@ on:
         options:
           - bootstrap
           - get-argocd-password
+          - reset-argocd-password
 
 env:
   SCW_DEFAULT_REGION: fr-par
@@ -442,7 +443,7 @@ jobs:
   get-argocd-password:
     name: Get ArgoCD initial password
     runs-on: ubuntu-latest
-    if: inputs.task == 'get-argocd-password'
+    if: inputs.task == 'get-argocd-password' || inputs.task == 'reset-argocd-password'
 
     steps:
       - name: Get kubeconfig
@@ -468,8 +469,40 @@ jobs:
           CLUSTER_ID_DEV: ${{ secrets.CLUSTER_ID_DEV }}
 
       - name: Print initial ArgoCD admin password
+        if: inputs.task == 'get-argocd-password'
         run: |
-          echo "::warning::Changer ce mot de passe immédiatement"
+          echo "::warning::Changer ce mot de passe immediatement"
           kubectl -n argocd get secret argocd-initial-admin-secret \
             -o jsonpath='{.data.password}' | base64 -d
           echo
+
+      - name: Reset ArgoCD admin password
+        if: inputs.task == 'reset-argocd-password'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apache2-utils
+
+          NEW_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
+          HASH="$(htpasswd -bnBC 10 "" "${NEW_PASSWORD}" | tr -d ':\n' | sed 's/$2y/$2a/')"
+
+          kubectl -n argocd patch secret argocd-secret \
+            --type merge \
+            -p "$(jq -n \
+              --arg hash "${HASH}" \
+              '{"stringData":{"admin.password":$hash}}')"
+
+          kubectl -n argocd patch secret argocd-secret \
+            --type json \
+            -p='[{"op":"remove","path":"/data/admin.passwordMtime"}]' || true
+
+          kubectl -n argocd rollout restart deployment/argocd-server
+          kubectl -n argocd rollout status deployment/argocd-server --timeout=180s
+
+          {
+            echo "## ArgoCD admin password reset"
+            echo ""
+            echo "- username: admin"
+            echo "- password: `${NEW_PASSWORD}`"
+            echo ""
+            echo "Changer ce mot de passe immediatement apres connexion."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
