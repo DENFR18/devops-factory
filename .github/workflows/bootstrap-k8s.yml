@@ -28,9 +28,13 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          curl -o /usr/local/bin/scw -L \
-            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
+            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
+            | head -n 1)"
+          test -n "$SCW_URL"
+          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
           chmod +x /usr/local/bin/scw
+          scw version
           scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
             --region fr-par > kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
@@ -59,9 +63,13 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          curl -o /usr/local/bin/scw -L \
-            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
+            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
+            | head -n 1)"
+          test -n "$SCW_URL"
+          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
           chmod +x /usr/local/bin/scw
+          scw version
           scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
             --region fr-par > kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
@@ -95,9 +103,13 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          curl -o /usr/local/bin/scw -L \
-            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
+            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
+            | head -n 1)"
+          test -n "$SCW_URL"
+          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
           chmod +x /usr/local/bin/scw
+          scw version
           scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
             --region fr-par > kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
@@ -132,9 +144,13 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          curl -o /usr/local/bin/scw -L \
-            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
+            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
+            | head -n 1)"
+          test -n "$SCW_URL"
+          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
           chmod +x /usr/local/bin/scw
+          scw version
           scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
             --region fr-par > kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
@@ -171,9 +187,13 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          curl -o /usr/local/bin/scw -L \
-            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
+            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
+            | head -n 1)"
+          test -n "$SCW_URL"
+          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
           chmod +x /usr/local/bin/scw
+          scw version
           scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
             --region fr-par > kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
@@ -212,9 +232,13 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          curl -o /usr/local/bin/scw -L \
-            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
+            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
+            | head -n 1)"
+          test -n "$SCW_URL"
+          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
           chmod +x /usr/local/bin/scw
+          scw version
           scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
             --region fr-par > kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
@@ -237,9 +261,13 @@ jobs:
     steps:
       - name: Get kubeconfig
         run: |
-          curl -o /usr/local/bin/scw -L \
-            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
+            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
+            | head -n 1)"
+          test -n "$SCW_URL"
+          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
           chmod +x /usr/local/bin/scw
+          scw version
           scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
             --region fr-par > kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
