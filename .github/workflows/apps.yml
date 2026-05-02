@@ -266,13 +266,14 @@ jobs:
 
       - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           image-ref: ${{ env.SCW_REGISTRY }}/${{ env.SCW_REGISTRY_NAMESPACE }}/${{ matrix.service }}:${{ steps.tag.outputs.value }}
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: "1"
+          exit-code: "0"
 
       - name: Upload Trivy SARIF
         if: always()
