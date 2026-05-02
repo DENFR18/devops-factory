@@ -28,19 +28,16 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
-            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
-            | head -n 1)"
-          test -n "$SCW_URL"
-          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
-          chmod +x /usr/local/bin/scw
-          scw version
-          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} region=fr-par > kubeconfig.yaml
+          curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
           SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          CLUSTER_ID_DEV: ${{ secrets.CLUSTER_ID_DEV }}
 
       - name: Apply bootstrap manifests
         run: |
@@ -62,19 +59,16 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
-            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
-            | head -n 1)"
-          test -n "$SCW_URL"
-          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
-          chmod +x /usr/local/bin/scw
-          scw version
-          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} region=fr-par > kubeconfig.yaml
+          curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
           SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          CLUSTER_ID_DEV: ${{ secrets.CLUSTER_ID_DEV }}
 
       - name: Setup Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
@@ -101,19 +95,16 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
-            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
-            | head -n 1)"
-          test -n "$SCW_URL"
-          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
-          chmod +x /usr/local/bin/scw
-          scw version
-          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} region=fr-par > kubeconfig.yaml
+          curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
           SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          CLUSTER_ID_DEV: ${{ secrets.CLUSTER_ID_DEV }}
 
       - name: Setup Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
@@ -141,19 +132,16 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
-            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
-            | head -n 1)"
-          test -n "$SCW_URL"
-          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
-          chmod +x /usr/local/bin/scw
-          scw version
-          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} region=fr-par > kubeconfig.yaml
+          curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
           SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          CLUSTER_ID_DEV: ${{ secrets.CLUSTER_ID_DEV }}
 
       - name: Setup Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
@@ -183,19 +171,16 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
-            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
-            | head -n 1)"
-          test -n "$SCW_URL"
-          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
-          chmod +x /usr/local/bin/scw
-          scw version
-          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} region=fr-par > kubeconfig.yaml
+          curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
           SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          CLUSTER_ID_DEV: ${{ secrets.CLUSTER_ID_DEV }}
 
       - name: Setup Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
@@ -227,19 +212,16 @@ jobs:
 
       - name: Get kubeconfig
         run: |
-          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
-            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
-            | head -n 1)"
-          test -n "$SCW_URL"
-          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
-          chmod +x /usr/local/bin/scw
-          scw version
-          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} region=fr-par > kubeconfig.yaml
+          curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
           SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          CLUSTER_ID_DEV: ${{ secrets.CLUSTER_ID_DEV }}
 
       - name: Apply root app
         run: |
@@ -255,19 +237,16 @@ jobs:
     steps:
       - name: Get kubeconfig
         run: |
-          SCW_URL="$(curl -fsSL https://api.github.com/repos/scaleway/scaleway-cli/releases/latest \
-            | jq -r '.assets[] | select(.name | test("^scaleway-cli_[0-9.]+_linux_amd64$")) | .browser_download_url' \
-            | head -n 1)"
-          test -n "$SCW_URL"
-          curl -fsSL -o /usr/local/bin/scw "$SCW_URL"
-          chmod +x /usr/local/bin/scw
-          scw version
-          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} region=fr-par > kubeconfig.yaml
+          curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
           SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
           SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
           SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          CLUSTER_ID_DEV: ${{ secrets.CLUSTER_ID_DEV }}
 
       - name: Print initial ArgoCD admin password
         run: |
