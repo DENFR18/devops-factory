@@ -144,6 +144,67 @@ jobs:
             -input=false \
             -reconfigure
 
+      - name: Cleanup Scaleway Private Network attachments
+        if: inputs.environment == 'dev'
+        working-directory: infra/terraform/environments/${{ inputs.environment }}
+        env:
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+
+          PN_ID="$(terraform state pull \
+            | jq -r '.resources[]? | select(.type == "scaleway_vpc_private_network" and .name == "main") | .instances[0].attributes.id // empty' \
+            | awk -F/ '{print $NF}' \
+            | head -n 1)"
+
+          if [ -z "${PN_ID}" ]; then
+            echo "Private Network absent du state Terraform, nettoyage Scaleway ignore."
+            exit 0
+          fi
+
+          echo "Private Network dev detecte: ${PN_ID}"
+
+          echo "Suppression des connexions Public Gateway encore attachees au Private Network..."
+          for api_version in v2 v1; do
+            GW_JSON="$(curl -fsSL \
+              -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/vpc-gw/${api_version}/zones/fr-par-1/gateway-networks" || echo '{"gateway_networks":[]}' )"
+
+            echo "${GW_JSON}" \
+              | jq -r --arg pn "${PN_ID}" '.gateway_networks[]? | select((.private_network_id? == $pn) or (.private_network.id? == $pn)) | .id' \
+              | while read -r gateway_network_id; do
+                  [ -z "${gateway_network_id}" ] && continue
+                  echo "Suppression gateway-network ${gateway_network_id} (${api_version})"
+                  curl -fsS -X DELETE \
+                    -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+                    "https://api.scaleway.com/vpc-gw/${api_version}/zones/fr-par-1/gateway-networks/${gateway_network_id}" || true
+                done
+          done
+
+          echo "Inspection IPAM des IPs reservees sur le Private Network..."
+          IPAM_JSON="$(curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/ipam/v1/regions/fr-par/ips?private_network_id=${PN_ID}" || echo '{"ips":[]}' )"
+
+          echo "${IPAM_JSON}" \
+            | jq -r '.ips[]? | [.id, (.address // "-"), (.resource.type // "reserved"), (.resource.id // "-")] | @tsv' \
+            | while IFS=$'\t' read -r ip_id address resource_type resource_id; do
+                echo "IPAM ${ip_id} ${address} resource=${resource_type}/${resource_id}"
+              done
+
+          echo "${IPAM_JSON}" \
+            | jq -r '.ips[]? | select((.resource // null) == null) | .id' \
+            | while read -r ip_id; do
+                [ -z "${ip_id}" ] && continue
+                echo "Liberation IPAM reservee ${ip_id}"
+                curl -fsS -X DELETE \
+                  -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+                  "https://api.scaleway.com/ipam/v1/regions/fr-par/ips/${ip_id}" || true
+              done
+
+          echo "Attente de propagation Scaleway avant destroy Terraform..."
+          sleep 180
+
       - name: Terraform Plan Destroy
         working-directory: infra/terraform/environments/${{ inputs.environment }}
         run: |
