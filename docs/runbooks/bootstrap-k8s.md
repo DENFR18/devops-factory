@@ -6,7 +6,7 @@ Cette procedure initialise la couche plateforme Kubernetes sur Scaleway Kapsule 
 
 1. Le workflow `Deploy Infrastructure` est vert.
 2. Le cluster Kapsule dev est disponible.
-3. Le secret GitHub `CLUSTER_ID_DEV` contient l'identifiant du cluster Kapsule dev.
+3. Le secret GitHub `CLUSTER_ID_DEV` contient l'identifiant du cluster Kapsule dev, ou le cluster s'appelle `devops-factory-dev` pour la detection automatique.
 4. Les secrets GitHub suivants existent deja :
    - `SCW_ACCESS_KEY`
    - `SCW_SECRET_KEY`
@@ -29,10 +29,12 @@ Cette procedure initialise la couche plateforme Kubernetes sur Scaleway Kapsule 
 6. ArgoCD synchronise ensuite la root app, les composants plateforme et les tenants.
 7. Ouvrir le summary du job `bootstrap-root-app` et recuperer le lien `portal.<IP>.nip.io`.
 8. Utiliser le portail pour acceder a ArgoCD et aux applications exposees en `nip.io`.
-9. Relancer `Bootstrap Kubernetes Platform`.
-10. Choisir `task = get-argocd-password`.
-11. Copier le mot de passe initial affiche dans les logs.
-12. Se connecter a ArgoCD avec l'utilisateur `admin`, puis changer ce mot de passe immediatement.
+9. Lancer le workflow `Applications - DevSecOps` pour builder/pusher les images `service-alpha`, `node-api` et `react`, puis laisser ArgoCD synchroniser les nouveaux tags.
+10. Relancer `Bootstrap Kubernetes Platform`.
+11. Choisir `task = get-argocd-password` ou `task = reset-argocd-password`.
+12. Copier le mot de passe affiche dans le summary.
+13. Se connecter a ArgoCD avec l'utilisateur `admin`, puis changer ce mot de passe immediatement.
+14. En cas de `503`, relancer `Bootstrap Kubernetes Platform` avec `task = diagnose-apps` pour obtenir les pods, services, endpoints, ingresses et codes HTTP publics dans le summary GitHub.
 
 Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
 
@@ -62,7 +64,7 @@ Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
 
 ## GitOps
 
-La root app ArgoCD surveille `argocd/applications/` sur la branche `main`.
+La root app ArgoCD surveille `argocd/applications/` sur le ref `HEAD` du depot.
 
 Applications gerees :
 
@@ -81,4 +83,5 @@ Chaque tenant possede un `AppProject` limite a son namespace Kubernetes.
 - Aucun secret applicatif ne doit etre commite en clair. Utiliser Sealed Secrets.
 - Les hosts ingress par defaut utilisent `*.devops-factory.example.com`; les remplacer par les domaines reels avant exposition publique.
 - Le portail d'acces genere aussi des URLs temporaires `*.nip.io` a partir de l'IP publique ingress-nginx.
+- Le diagnostic `task = diagnose-apps` permet de prouver qu'une app repond vraiment et d'identifier rapidement les services sans endpoints.
 - Les ClusterIssuers utilisent `devops@example.com`; remplacer cet email par une adresse operationnelle avant usage production.

@@ -12,6 +12,7 @@ on:
           - bootstrap
           - get-argocd-password
           - reset-argocd-password
+          - diagnose-apps
 
 env:
   SCW_DEFAULT_REGION: fr-par
@@ -550,7 +551,7 @@ jobs:
                       pathType: Prefix
                       backend:
                         service:
-                          name: mattermost-app
+                          name: mattermost
                           port:
                             number: 8065
           ---
@@ -731,3 +732,107 @@ jobs:
             echo ""
             echo "Changer ce mot de passe immediatement apres connexion."
           } | tee -a "$GITHUB_STEP_SUMMARY"
+
+  diagnose-apps:
+    name: Diagnose exposed applications
+    runs-on: ubuntu-latest
+    if: inputs.task == 'diagnose-apps'
+
+    steps:
+      - name: Get kubeconfig
+        run: |
+          CLUSTER_ID="${CLUSTER_ID_DEV:-}"
+          if [ -z "${CLUSTER_ID}" ]; then
+            CLUSTER_ID="$(curl -fsSL \
+              -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+              | jq -r '.clusters[] | select(.name == "devops-factory-dev") | .id' \
+              | head -n 1)"
+          fi
+          test -n "${CLUSTER_ID}"
+          curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID}/kubeconfig?dl=1" \
+            -o kubeconfig.yaml
+          echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          CLUSTER_ID_DEV: ${{ secrets.CLUSTER_ID_DEV }}
+
+      - name: Inspect Kubernetes resources
+        run: |
+          set -euo pipefail
+          namespaces=(
+            argocd
+            monitoring
+            stack-wordpress
+            stack-mattermost
+            stack-ghost
+            stack-gitea
+            stack-nextcloud
+            tenant-alpha
+            tenant-beta
+            tenant-gamma
+          )
+
+          {
+            echo "## Kubernetes application diagnostics"
+            echo ""
+            echo "### ArgoCD applications"
+            echo '```'
+            kubectl -n argocd get applications.argoproj.io -o wide || true
+            echo '```'
+            echo ""
+            echo "### Pods, services and endpoints"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for ns in "${namespaces[@]}"; do
+            {
+              echo ""
+              echo "#### ${ns}"
+              echo '```'
+              kubectl -n "${ns}" get pods,svc,endpoints,ingress -o wide || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Test public nip.io URLs
+        run: |
+          set -euo pipefail
+          INGRESS_IP="$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
+            -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+
+          hosts=(
+            portal
+            argocd
+            grafana
+            prometheus
+            alertmanager
+            wordpress
+            slack
+            ghost
+            gitea
+            cloud
+            node-api
+            flask
+            react
+          )
+
+          {
+            echo ""
+            echo "### Public HTTP checks"
+            echo ""
+            echo "| App | URL | HTTP |"
+            echo "| --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for host in "${hosts[@]}"; do
+            url="http://${host}.${INGRESS_IP}.nip.io/"
+            code="$(curl -k -sS -o /tmp/health-body -w '%{http_code}' --max-time 20 "${url}" || true)"
+            if [ -z "${code}" ]; then
+              code="000"
+            fi
+            echo "| ${host} | ${url} | ${code} |" >> "$GITHUB_STEP_SUMMARY"
+          done
