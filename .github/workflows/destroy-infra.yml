@@ -52,7 +52,7 @@ env:
   SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
   # Terraform variable
   TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
-  TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
+  SCW_DEFAULT_ORGANIZATION_ID: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
 
 # One destroy per environment at a time — never cancel a destroy in progress.
 concurrency:

@@ -1,8 +1,7 @@
 # Copy this file to terraform.tfvars and fill in real values.
 # terraform.tfvars is in .gitignore — NEVER commit it.
 
-project_id      = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-organization_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+project_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 # Network
 private_subnet_cidr = "10.0.0.0/20"
