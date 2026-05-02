@@ -265,7 +265,7 @@ jobs:
           password: ${{ secrets.SCW_SECRET_KEY }}
 
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.SCW_REGISTRY }}/${{ env.SCW_REGISTRY_NAMESPACE }}/${{ matrix.service }}:${{ steps.tag.outputs.value }}
           format: sarif
@@ -283,7 +283,7 @@ jobs:
 
   # ── 5. Update image tag — GitOps ─────────────────────────────────────────
   update-image-tag:
-    name: Update image tag — ${{ matrix.service }}
+    name: Update image tags
     runs-on: ubuntu-latest
     needs: [build-push]
     if: >
@@ -292,16 +292,6 @@ jobs:
        github.ref == 'refs/heads/main' ||
        github.ref == 'refs/heads/develop' ||
        github.ref == 'refs/heads/refactor/devsecops-v2')
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - service: service-alpha
-            values: argocd/tenants/alpha/values.yaml
-          - service: node-api
-            values: argocd/tenants/beta/values.yaml
-          - service: react
-            values: argocd/tenants/gamma/values.yaml
 
     permissions:
       contents: write
@@ -314,37 +304,47 @@ jobs:
       - name: Download image tag
         uses: actions/download-artifact@v4
         with:
-          name: image-tag-${{ matrix.service }}
-          path: /tmp
+          pattern: image-tag-*
+          path: /tmp/image-tags
+          merge-multiple: true
 
       - name: Update chart values
-        env:
-          SERVICE: ${{ matrix.service }}
-          VALUES: ${{ matrix.values }}
-          SCW_REGISTRY: ${{ env.SCW_REGISTRY }}
-          SCW_REGISTRY_NAMESPACE: ${{ env.SCW_REGISTRY_NAMESPACE }}
         run: |
           set -euo pipefail
-          IMAGE_TAG="$(cat /tmp/image-tag-${SERVICE}.txt)"
-          if [ -f "${VALUES}" ]; then
-            sed -i "s|  tag:.*|  tag: \"${IMAGE_TAG}\"|" "${VALUES}"
-            echo "${VALUES} → ${SERVICE}:${IMAGE_TAG}"
-          else
-            echo "WARNING: ${VALUES} not found — skipping"
-          fi
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+
+          update_tag() {
+            service="$1"
+            values="$2"
+            tag_file="/tmp/image-tags/image-tag-${service}.txt"
+
+            if [ ! -f "${tag_file}" ]; then
+              echo "ERROR: missing image tag artifact for ${service}"
+              exit 1
+            fi
+            if [ ! -f "${values}" ]; then
+              echo "ERROR: ${values} not found"
+              exit 1
+            fi
+
+            image_tag="$(cat "${tag_file}")"
+            sed -i "s|  tag:.*|  tag: \"${image_tag}\"|" "${values}"
+            echo "${values} → ${service}:${image_tag}"
+          }
+
+          update_tag service-alpha argocd/tenants/alpha/values.yaml
+          update_tag node-api argocd/tenants/beta/values.yaml
+          update_tag react argocd/tenants/gamma/values.yaml
 
       - name: Commit and push
-        env:
-          SERVICE: ${{ matrix.service }}
         run: |
           set -euo pipefail
-          IMAGE_TAG="$(cat /tmp/image-tag-${SERVICE}.txt)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add argocd/tenants/
           if git diff --staged --quiet; then
-            echo "No changes — tag already up to date"
+            echo "No changes - tags already up to date"
           else
-            git commit -m "chore(k8s): update ${SERVICE} image to ${IMAGE_TAG} [skip ci]"
+            git commit -m "chore(k8s): update application image tags [skip ci]"
             git push
           fi
