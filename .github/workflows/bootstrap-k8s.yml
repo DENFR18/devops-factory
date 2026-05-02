@@ -1,0 +1,256 @@
+name: Bootstrap Kubernetes Platform
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Bootstrap platform or retrieve the initial ArgoCD admin password"
+        required: true
+        default: bootstrap
+        type: choice
+        options:
+          - bootstrap
+          - get-argocd-password
+
+env:
+  SCW_DEFAULT_REGION: fr-par
+  SCW_DEFAULT_ZONE: fr-par-1
+
+jobs:
+  bootstrap-namespaces:
+    name: Bootstrap namespaces and policies
+    runs-on: ubuntu-latest
+    if: inputs.task == 'bootstrap'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Get kubeconfig
+        run: |
+          curl -o /usr/local/bin/scw -L \
+            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          chmod +x /usr/local/bin/scw
+          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
+            --region fr-par > kubeconfig.yaml
+          echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+      - name: Apply bootstrap manifests
+        run: |
+          kubectl apply -f infra/kubernetes/bootstrap/01-namespaces.yaml
+          kubectl apply -f infra/kubernetes/bootstrap/02-resource-quotas.yaml
+          kubectl apply -f infra/kubernetes/bootstrap/03-limit-ranges.yaml
+          kubectl apply -f infra/kubernetes/bootstrap/04-network-policies.yaml
+          kubectl apply -f infra/kubernetes/bootstrap/05-rbac.yaml
+
+  bootstrap-ingress-nginx:
+    name: Bootstrap ingress-nginx
+    runs-on: ubuntu-latest
+    needs: bootstrap-namespaces
+    if: inputs.task == 'bootstrap'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Get kubeconfig
+        run: |
+          curl -o /usr/local/bin/scw -L \
+            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          chmod +x /usr/local/bin/scw
+          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
+            --region fr-par > kubeconfig.yaml
+          echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Install ingress-nginx
+        run: |
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo update
+          helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+            --namespace ingress-nginx \
+            --values infra/kubernetes/bootstrap/helm-values/ingress-nginx-values.yaml \
+            --wait \
+            --timeout 5m
+
+  bootstrap-cert-manager:
+    name: Bootstrap cert-manager
+    runs-on: ubuntu-latest
+    needs: bootstrap-ingress-nginx
+    if: inputs.task == 'bootstrap'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Get kubeconfig
+        run: |
+          curl -o /usr/local/bin/scw -L \
+            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          chmod +x /usr/local/bin/scw
+          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
+            --region fr-par > kubeconfig.yaml
+          echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Install cert-manager
+        run: |
+          helm repo add jetstack https://charts.jetstack.io
+          helm repo update
+          helm upgrade --install cert-manager jetstack/cert-manager \
+            --namespace cert-manager \
+            --set installCRDs=true \
+            --values infra/kubernetes/bootstrap/helm-values/cert-manager-values.yaml \
+            --wait \
+            --timeout 5m
+
+  bootstrap-sealed-secrets:
+    name: Bootstrap sealed-secrets
+    runs-on: ubuntu-latest
+    needs: bootstrap-cert-manager
+    if: inputs.task == 'bootstrap'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Get kubeconfig
+        run: |
+          curl -o /usr/local/bin/scw -L \
+            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          chmod +x /usr/local/bin/scw
+          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
+            --region fr-par > kubeconfig.yaml
+          echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Install sealed-secrets
+        run: |
+          helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
+          helm repo update
+          helm upgrade --install sealed-secrets sealed-secrets/sealed-secrets \
+            --namespace sealed-secrets \
+            --values infra/kubernetes/bootstrap/helm-values/sealed-secrets-values.yaml \
+            --wait \
+            --timeout 5m
+
+  bootstrap-argocd:
+    name: Bootstrap ArgoCD
+    runs-on: ubuntu-latest
+    needs:
+      - bootstrap-ingress-nginx
+      - bootstrap-cert-manager
+      - bootstrap-sealed-secrets
+    if: inputs.task == 'bootstrap'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Get kubeconfig
+        run: |
+          curl -o /usr/local/bin/scw -L \
+            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          chmod +x /usr/local/bin/scw
+          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
+            --region fr-par > kubeconfig.yaml
+          echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+
+      - name: Install ArgoCD
+        run: |
+          helm repo add argo https://argoproj.github.io/argo-helm
+          helm repo update
+          helm upgrade --install argocd argo/argo-cd \
+            --namespace argocd \
+            --values infra/kubernetes/bootstrap/helm-values/argocd-values.yaml \
+            --wait \
+            --timeout 10m
+
+      - name: Wait for ArgoCD CRDs
+        run: |
+          kubectl wait --for condition=established crd/applications.argoproj.io --timeout=60s
+          kubectl wait --for condition=established crd/appprojects.argoproj.io --timeout=60s
+
+  bootstrap-root-app:
+    name: Bootstrap root app
+    runs-on: ubuntu-latest
+    needs: bootstrap-argocd
+    if: inputs.task == 'bootstrap'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Get kubeconfig
+        run: |
+          curl -o /usr/local/bin/scw -L \
+            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          chmod +x /usr/local/bin/scw
+          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
+            --region fr-par > kubeconfig.yaml
+          echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+      - name: Apply root app
+        run: |
+          kubectl apply -f argocd/root-app.yaml
+          kubectl wait -n argocd --for=jsonpath='{.status.sync.status}'=Synced \
+            application/root --timeout=120s
+
+  get-argocd-password:
+    name: Get ArgoCD initial password
+    runs-on: ubuntu-latest
+    if: inputs.task == 'get-argocd-password'
+
+    steps:
+      - name: Get kubeconfig
+        run: |
+          curl -o /usr/local/bin/scw -L \
+            https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64
+          chmod +x /usr/local/bin/scw
+          scw k8s kubeconfig get ${{ secrets.CLUSTER_ID_DEV }} \
+            --region fr-par > kubeconfig.yaml
+          echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_DEFAULT_PROJECT_ID: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+
+      - name: Print initial ArgoCD admin password
+        run: |
+          echo "::warning::Changer ce mot de passe immédiatement"
+          kubectl -n argocd get secret argocd-initial-admin-secret \
+            -o jsonpath='{.data.password}' | base64 -d
+          echo

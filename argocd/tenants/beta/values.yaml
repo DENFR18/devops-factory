@@ -1,0 +1,21 @@
+image:
+  repository: rg.fr-par.scw.cloud/devops-factory/node-api
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+ingress:
+  enabled: true
+  host: beta.devops-factory.example.com
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+env:
+  PORT: "3000"

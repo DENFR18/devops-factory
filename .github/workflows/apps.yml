@@ -294,11 +294,11 @@ jobs:
       matrix:
         include:
           - service: service-alpha
-            values: manifests/tenants/alpha/values.yaml
+            values: argocd/tenants/alpha/values.yaml
           - service: node-api
-            values: charts/node-api/values.yaml
+            values: argocd/tenants/beta/values.yaml
           - service: react
-            values: charts/react/values.yaml
+            values: argocd/tenants/gamma/values.yaml
 
     permissions:
       contents: write
@@ -338,7 +338,7 @@ jobs:
           IMAGE_TAG="$(cat /tmp/image-tag-${SERVICE}.txt)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add manifests/ charts/
+          git add argocd/tenants/
           if git diff --staged --quiet; then
             echo "No changes — tag already up to date"
           else

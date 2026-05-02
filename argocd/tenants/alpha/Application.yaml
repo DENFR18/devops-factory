@@ -1,24 +1,27 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: react
+  name: tenant-alpha-service
   namespace: argocd
   labels:
-    app.kubernetes.io/part-of: cloud-forge
-    tenant: react
+    app.kubernetes.io/name: tenant-alpha-service
+    app.kubernetes.io/part-of: tenants
+    tenant: alpha
 spec:
-  project: default
+  project: tenant-alpha
   source:
     repoURL: https://github.com/DENFR18/devops-factory.git
-    targetRevision: HEAD
-    path: charts/react
+    targetRevision: main
+    path: charts/service-alpha
+    helm:
+      valueFiles:
+        - ../../argocd/tenants/alpha/values.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: react
+    namespace: tenant-alpha
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
       - ServerSideApply=true

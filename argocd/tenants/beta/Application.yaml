@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tenant-beta-service
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: tenant-beta-service
+    app.kubernetes.io/part-of: tenants
+    tenant: beta
+spec:
+  project: tenant-beta
+  source:
+    repoURL: https://github.com/DENFR18/devops-factory.git
+    targetRevision: main
+    path: charts/node-api
+    helm:
+      valueFiles:
+        - ../../argocd/tenants/beta/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tenant-beta
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

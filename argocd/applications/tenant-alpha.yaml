@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tenant-alpha
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: tenant-alpha
+    app.kubernetes.io/part-of: tenants
+    tenant: alpha
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/DENFR18/devops-factory.git
+    targetRevision: main
+    path: argocd/tenants/alpha
+    directory:
+      exclude: values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

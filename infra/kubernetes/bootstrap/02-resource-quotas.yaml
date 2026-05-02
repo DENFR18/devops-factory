@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-quota
+  namespace: tenant-alpha
+  labels:
+    app.kubernetes.io/name: tenant-quota
+    app.kubernetes.io/part-of: tenants
+    tenant: alpha
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    pods: "20"
+    services: "10"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-quota
+  namespace: tenant-beta
+  labels:
+    app.kubernetes.io/name: tenant-quota
+    app.kubernetes.io/part-of: tenants
+    tenant: beta
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    pods: "20"
+    services: "10"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tenant-quota
+  namespace: tenant-gamma
+  labels:
+    app.kubernetes.io/name: tenant-quota
+    app.kubernetes.io/part-of: tenants
+    tenant: gamma
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    pods: "20"
+    services: "10"

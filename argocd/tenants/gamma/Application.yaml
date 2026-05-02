@@ -1,24 +1,27 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: node-api
+  name: tenant-gamma-service
   namespace: argocd
   labels:
-    app.kubernetes.io/part-of: cloud-forge
-    tenant: node-api
+    app.kubernetes.io/name: tenant-gamma-service
+    app.kubernetes.io/part-of: tenants
+    tenant: gamma
 spec:
-  project: default
+  project: tenant-gamma
   source:
     repoURL: https://github.com/DENFR18/devops-factory.git
-    targetRevision: HEAD
-    path: charts/node-api
+    targetRevision: main
+    path: charts/react
+    helm:
+      valueFiles:
+        - ../../argocd/tenants/gamma/values.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: node-api
+    namespace: tenant-gamma
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
       - ServerSideApply=true

@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-defaults
+  namespace: tenant-alpha
+  labels:
+    app.kubernetes.io/name: tenant-defaults
+    app.kubernetes.io/part-of: tenants
+    tenant: alpha
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 500m
+        memory: 512Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-defaults
+  namespace: tenant-beta
+  labels:
+    app.kubernetes.io/name: tenant-defaults
+    app.kubernetes.io/part-of: tenants
+    tenant: beta
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 500m
+        memory: 512Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-defaults
+  namespace: tenant-gamma
+  labels:
+    app.kubernetes.io/name: tenant-defaults
+    app.kubernetes.io/part-of: tenants
+    tenant: gamma
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 500m
+        memory: 512Mi

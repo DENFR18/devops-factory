@@ -1,0 +1,7 @@
+controller:
+  config:
+    use-forwarded-headers: "true"
+    ssl-protocols: "TLSv1.2 TLSv1.3"
+    hsts: "true"
+    server-tokens: "false"
+    proxy-body-size: "10m"

@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: tenant-gamma
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: tenant-gamma
+    app.kubernetes.io/part-of: tenants
+    tenant: gamma
+spec:
+  description: Tenant gamma applications
+  sourceRepos:
+    - https://github.com/DENFR18/devops-factory.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: tenant-gamma
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: Service
+    - group: apps
+      kind: Deployment
+    - group: networking.k8s.io
+      kind: Ingress

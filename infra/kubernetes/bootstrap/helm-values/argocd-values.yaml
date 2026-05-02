@@ -1,0 +1,11 @@
+server:
+  insecure: false
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-staging
+
+configs:
+  params:
+    server.insecure: false
