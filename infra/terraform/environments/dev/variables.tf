@@ -3,6 +3,11 @@ variable "project_id" {
   description = "Scaleway project ID (UUID)"
 }
 
+variable "organization_id" {
+  type        = string
+  description = "Scaleway organization ID (UUID) — required for IAM resources"
+}
+
 variable "private_subnet_cidr" {
   type        = string
   description = "CIDR for the private network"
@@ -12,7 +17,7 @@ variable "private_subnet_cidr" {
 variable "kubernetes_version" {
   type        = string
   description = "Kubernetes version for the Kapsule cluster"
-  default     = "1.31"
+  default     = "1.32"
 }
 
 variable "node_type" {
@@ -63,13 +68,13 @@ variable "app_buckets" {
     {
       name         = "devops-factory-logs-dev"
       purpose      = "logs"
-      cold_after   = 30
+      cold_after   = 90
       expire_after = 365
     },
     {
       name         = "devops-factory-artifacts-dev"
       purpose      = "artifacts"
-      cold_after   = 30
+      cold_after   = 90
       expire_after = 365
     },
   ]

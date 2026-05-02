@@ -10,8 +10,9 @@ terraform {
 }
 
 provider "scaleway" {
-  region     = "fr-par"
-  zone       = "fr-par-1"
-  project_id = var.project_id
+  region          = "fr-par"
+  zone            = "fr-par-1"
+  project_id      = var.project_id
+  organization_id = var.organization_id
   # Credentials via SCW_ACCESS_KEY / SCW_SECRET_KEY (GitHub Secrets)
 }
