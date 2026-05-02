@@ -482,7 +482,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y apache2-utils
 
-          NEW_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
+          NEW_PASSWORD="ChangeMe-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}-DevOpsFactory!"
           HASH="$(htpasswd -bnBC 10 "" "${NEW_PASSWORD}" | tr -d ':\n' | sed 's/$2y/$2a/')"
 
           kubectl -n argocd patch secret argocd-secret \
