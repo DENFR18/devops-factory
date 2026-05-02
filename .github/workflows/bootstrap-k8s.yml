@@ -284,7 +284,7 @@ jobs:
           kubectl apply -f argocd/root-app.yaml
           kubectl wait -n argocd --for=jsonpath='{.status.sync.status}'=Synced \
             application/root --timeout=300s || {
-              echo "::warning::ArgoCD root app is still reconciling; continuing to publish nip.io links"
+              echo "::warning::L'application root ArgoCD est encore en reconciliation; publication des liens nip.io maintenue"
               kubectl -n argocd get application root -o wide || true
             }
 
@@ -633,25 +633,25 @@ jobs:
           EOF
 
           {
-            echo "## Ingress nip.io"
+            echo "## Acces publics nip.io"
             echo ""
-            echo "- ingress-nginx IP: ${INGRESS_IP}"
+            echo "- IP publique ingress-nginx: ${INGRESS_IP}"
             echo "- Portail: http://${PORTAL_HOST}"
             echo "- ArgoCD: http://${ARGOCD_HOST}"
             echo "- Grafana: http://grafana.${INGRESS_IP}.nip.io"
             echo "- Prometheus: http://prometheus.${INGRESS_IP}.nip.io"
             echo "- Alertmanager: http://alertmanager.${INGRESS_IP}.nip.io"
             echo "- WordPress + MySQL: http://wordpress.${INGRESS_IP}.nip.io"
-            echo "- Slack-like Mattermost: http://slack.${INGRESS_IP}.nip.io"
+            echo "- Messagerie Mattermost: http://slack.${INGRESS_IP}.nip.io"
             echo "- Ghost: http://ghost.${INGRESS_IP}.nip.io"
             echo "- Gitea: http://gitea.${INGRESS_IP}.nip.io"
             echo "- Cloud Nextcloud: http://cloud.${INGRESS_IP}.nip.io"
             echo "- Node API: http://node-api.${INGRESS_IP}.nip.io"
             echo "- Flask API: http://flask.${INGRESS_IP}.nip.io"
             echo "- React: http://react.${INGRESS_IP}.nip.io"
-            echo "- Tenant alpha host pattern: http://alpha.${INGRESS_IP}.nip.io"
-            echo "- Tenant beta host pattern: http://beta.${INGRESS_IP}.nip.io"
-            echo "- Tenant gamma host pattern: http://gamma.${INGRESS_IP}.nip.io"
+            echo "- Modele d'hote tenant alpha: http://alpha.${INGRESS_IP}.nip.io"
+            echo "- Modele d'hote tenant beta: http://beta.${INGRESS_IP}.nip.io"
+            echo "- Modele d'hote tenant gamma: http://gamma.${INGRESS_IP}.nip.io"
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
   get-argocd-password:
@@ -725,10 +725,10 @@ jobs:
           kubectl -n argocd rollout status deployment/argocd-server --timeout=180s
 
           {
-            echo "## ArgoCD admin password reset"
+            echo "## Mot de passe administrateur ArgoCD reinitialise"
             echo ""
-            echo "- username: admin"
-            echo "- password: ${NEW_PASSWORD}"
+            echo "- utilisateur: admin"
+            echo "- mot de passe: ${NEW_PASSWORD}"
             echo ""
             echo "Changer ce mot de passe immediatement apres connexion."
           } | tee -a "$GITHUB_STEP_SUMMARY"
@@ -778,14 +778,14 @@ jobs:
           )
 
           {
-            echo "## Kubernetes application diagnostics"
+            echo "## Diagnostics des applications Kubernetes"
             echo ""
             echo "### ArgoCD applications"
             echo '```'
             kubectl -n argocd get applications.argoproj.io -o wide || true
             echo '```'
             echo ""
-            echo "### Pods, services and endpoints"
+            echo "### Pods, services et endpoints"
           } >> "$GITHUB_STEP_SUMMARY"
 
           for ns in "${namespaces[@]}"; do
@@ -822,9 +822,9 @@ jobs:
 
           {
             echo ""
-            echo "### Public HTTP checks"
+            echo "### Verification HTTP publique"
             echo ""
-            echo "| App | URL | HTTP |"
+            echo "| Application | URL | Code HTTP |"
             echo "| --- | --- | --- |"
           } >> "$GITHUB_STEP_SUMMARY"
 

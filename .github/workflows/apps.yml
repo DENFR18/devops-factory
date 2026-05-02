@@ -329,11 +329,11 @@ jobs:
             tag_file="/tmp/image-tags/image-tag-${service}.txt"
 
             if [ ! -f "${tag_file}" ]; then
-              echo "ERROR: missing image tag artifact for ${service}"
+              echo "ERREUR: artefact de tag image manquant pour ${service}"
               exit 1
             fi
             if [ ! -f "${values}" ]; then
-              echo "ERROR: ${values} not found"
+              echo "ERREUR: ${values} introuvable"
               exit 1
             fi
 
@@ -353,7 +353,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add argocd/tenants/
           if git diff --staged --quiet; then
-            echo "No changes - tags already up to date"
+            echo "Aucun changement - les tags sont deja a jour"
           else
             git commit -m "chore(k8s): update application image tags [skip ci]"
             git push

@@ -248,30 +248,30 @@ jobs:
             const destroyMatch = planOutput.match(/(\d+) to destroy/);
             const destroyCount = destroyMatch ? parseInt(destroyMatch[1]) : 0;
             const destructiveWarning = destroyCount > 0
-              ? `\n> ⚠️ **WARNING: This plan will DESTROY ${destroyCount} resource(s). Review carefully before applying.**\n`
+              ? `\n> ATTENTION: ce plan va DETRUIRE ${destroyCount} ressource(s). A relire attentivement avant application.\n`
               : '';
 
             // Extract summary line
             const summaryMatch = planOutput.match(/Plan:.*\n/);
-            const summary = summaryMatch ? summaryMatch[0].trim() : 'No changes.';
+            const summary = summaryMatch ? summaryMatch[0].trim() : 'Aucun changement.';
 
             const body = [
-              '## 🏗️ Terraform Plan — dev',
+              '## Plan Terraform - dev',
               destructiveWarning,
               `**${summary}**`,
               '',
-              `<details><summary>Show full plan output</summary>`,
+              `<details><summary>Afficher la sortie complete du plan</summary>`,
               '',
               '```hcl',
               planOutput.slice(-60000), // GitHub comment limit
               '```',
               '</details>',
               '',
-              `[View job run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+              `[Voir l'execution du job](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
             ].join('\n');
 
             // Update existing comment or create a new one
-            const marker = '## 🏗️ Terraform Plan — dev';
+            const marker = '## Plan Terraform - dev';
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -367,28 +367,28 @@ jobs:
             const destroyMatch = planOutput.match(/(\d+) to destroy/);
             const destroyCount = destroyMatch ? parseInt(destroyMatch[1]) : 0;
             const destructiveWarning = destroyCount > 0
-              ? `\n> ⚠️ **WARNING: This plan will DESTROY ${destroyCount} resource(s) in PRODUCTION. Review carefully before applying.**\n`
+              ? `\n> ATTENTION: ce plan va DETRUIRE ${destroyCount} ressource(s) en PRODUCTION. A relire attentivement avant application.\n`
               : '';
 
             const summaryMatch = planOutput.match(/Plan:.*\n/);
-            const summary = summaryMatch ? summaryMatch[0].trim() : 'No changes.';
+            const summary = summaryMatch ? summaryMatch[0].trim() : 'Aucun changement.';
 
             const body = [
-              '## 🏗️ Terraform Plan — prod',
+              '## Plan Terraform - prod',
               destructiveWarning,
               `**${summary}**`,
               '',
-              `<details><summary>Show full plan output</summary>`,
+              `<details><summary>Afficher la sortie complete du plan</summary>`,
               '',
               '```hcl',
               planOutput.slice(-60000),
               '```',
               '</details>',
               '',
-              `[View job run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+              `[Voir l'execution du job](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
             ].join('\n');
 
-            const marker = '## 🏗️ Terraform Plan — prod';
+            const marker = '## Plan Terraform - prod';
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
