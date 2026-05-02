@@ -90,6 +90,47 @@ jobs:
         with:
           terraform_version: "1.7.5"
 
+      - name: Cleanup Kubernetes LoadBalancers
+        if: inputs.environment == 'dev'
+        env:
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+
+          CLUSTER_ID="$(curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+            | jq -r '.clusters[] | select(.name == "devops-factory-dev") | .id' \
+            | head -n 1)"
+
+          if [ -z "${CLUSTER_ID}" ]; then
+            echo "Aucun cluster devops-factory-dev detecte, nettoyage Kubernetes ignore."
+            exit 0
+          fi
+
+          if ! curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID}/kubeconfig?dl=1" \
+            -o kubeconfig.yaml; then
+            echo "Kubeconfig indisponible, le cluster est probablement deja en suppression."
+            exit 0
+          fi
+
+          export KUBECONFIG="$(pwd)/kubeconfig.yaml"
+
+          echo "Suppression des services Kubernetes de type LoadBalancer..."
+          kubectl get svc --all-namespaces \
+            -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name,TYPE:.spec.type \
+            --no-headers \
+            | awk '$3 == "LoadBalancer" {print $1, $2}' \
+            | while read -r ns name; do
+                echo "Suppression du service ${ns}/${name}"
+                kubectl -n "${ns}" delete svc "${name}" --ignore-not-found=true
+              done || true
+
+          echo "Attente de liberation des LoadBalancers Scaleway..."
+          sleep 90
+
       - name: Terraform Init
         working-directory: infra/terraform/environments/${{ inputs.environment }}
         env:
@@ -123,7 +164,15 @@ jobs:
         working-directory: infra/terraform/environments/${{ inputs.environment }}
         run: |
           set -euo pipefail
-          terraform apply -auto-approve tfplan-destroy
+          for attempt in 1 2 3; do
+            if terraform apply -auto-approve tfplan-destroy; then
+              exit 0
+            fi
+            echo "Destroy encore bloque, tentative ${attempt}/3. Attente avant nouvel essai..."
+            sleep 120
+          done
+          echo "Destroy impossible apres 3 tentatives."
+          exit 1
 
       - name: Confirmation finale
         env:
