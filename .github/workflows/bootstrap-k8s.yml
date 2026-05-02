@@ -28,9 +28,18 @@ jobs:
 
       - name: Get kubeconfig
         run: |
+          CLUSTER_ID="${CLUSTER_ID_DEV:-}"
+          if [ -z "${CLUSTER_ID}" ]; then
+            CLUSTER_ID="$(curl -fsSL \
+              -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+              | jq -r '.clusters[] | select(.name == "devops-factory-dev") | .id' \
+              | head -n 1)"
+          fi
+          test -n "${CLUSTER_ID}"
           curl -fsSL \
             -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
-            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID}/kubeconfig?dl=1" \
             -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
@@ -59,9 +68,18 @@ jobs:
 
       - name: Get kubeconfig
         run: |
+          CLUSTER_ID="${CLUSTER_ID_DEV:-}"
+          if [ -z "${CLUSTER_ID}" ]; then
+            CLUSTER_ID="$(curl -fsSL \
+              -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+              | jq -r '.clusters[] | select(.name == "devops-factory-dev") | .id' \
+              | head -n 1)"
+          fi
+          test -n "${CLUSTER_ID}"
           curl -fsSL \
             -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
-            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID}/kubeconfig?dl=1" \
             -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
@@ -95,9 +113,18 @@ jobs:
 
       - name: Get kubeconfig
         run: |
+          CLUSTER_ID="${CLUSTER_ID_DEV:-}"
+          if [ -z "${CLUSTER_ID}" ]; then
+            CLUSTER_ID="$(curl -fsSL \
+              -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+              | jq -r '.clusters[] | select(.name == "devops-factory-dev") | .id' \
+              | head -n 1)"
+          fi
+          test -n "${CLUSTER_ID}"
           curl -fsSL \
             -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
-            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID}/kubeconfig?dl=1" \
             -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
@@ -132,9 +159,18 @@ jobs:
 
       - name: Get kubeconfig
         run: |
+          CLUSTER_ID="${CLUSTER_ID_DEV:-}"
+          if [ -z "${CLUSTER_ID}" ]; then
+            CLUSTER_ID="$(curl -fsSL \
+              -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+              | jq -r '.clusters[] | select(.name == "devops-factory-dev") | .id' \
+              | head -n 1)"
+          fi
+          test -n "${CLUSTER_ID}"
           curl -fsSL \
             -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
-            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID}/kubeconfig?dl=1" \
             -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
@@ -171,9 +207,18 @@ jobs:
 
       - name: Get kubeconfig
         run: |
+          CLUSTER_ID="${CLUSTER_ID_DEV:-}"
+          if [ -z "${CLUSTER_ID}" ]; then
+            CLUSTER_ID="$(curl -fsSL \
+              -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+              | jq -r '.clusters[] | select(.name == "devops-factory-dev") | .id' \
+              | head -n 1)"
+          fi
+          test -n "${CLUSTER_ID}"
           curl -fsSL \
             -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
-            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID}/kubeconfig?dl=1" \
             -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
@@ -212,9 +257,18 @@ jobs:
 
       - name: Get kubeconfig
         run: |
+          CLUSTER_ID="${CLUSTER_ID_DEV:-}"
+          if [ -z "${CLUSTER_ID}" ]; then
+            CLUSTER_ID="$(curl -fsSL \
+              -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+              | jq -r '.clusters[] | select(.name == "devops-factory-dev") | .id' \
+              | head -n 1)"
+          fi
+          test -n "${CLUSTER_ID}"
           curl -fsSL \
             -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
-            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID}/kubeconfig?dl=1" \
             -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
@@ -237,9 +291,18 @@ jobs:
     steps:
       - name: Get kubeconfig
         run: |
+          CLUSTER_ID="${CLUSTER_ID_DEV:-}"
+          if [ -z "${CLUSTER_ID}" ]; then
+            CLUSTER_ID="$(curl -fsSL \
+              -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+              | jq -r '.clusters[] | select(.name == "devops-factory-dev") | .id' \
+              | head -n 1)"
+          fi
+          test -n "${CLUSTER_ID}"
           curl -fsSL \
             -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
-            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID_DEV}/kubeconfig?dl=1" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${CLUSTER_ID}/kubeconfig?dl=1" \
             -o kubeconfig.yaml
           echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
         env:
