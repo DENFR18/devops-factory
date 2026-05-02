@@ -47,6 +47,18 @@ Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
 - ArgoCD via Helm
 - Application ArgoCD `root`
 - Portail d'acces `portal.<IP>.nip.io`
+- Catalogue applicatif GitOps :
+  - `wordpress.<IP>.nip.io` pour WordPress + base SQL
+  - `grafana.<IP>.nip.io`
+  - `prometheus.<IP>.nip.io`
+  - `alertmanager.<IP>.nip.io`
+  - `slack.<IP>.nip.io` pour Mattermost
+  - `ghost.<IP>.nip.io`
+  - `gitea.<IP>.nip.io`
+  - `cloud.<IP>.nip.io` pour Nextcloud
+  - `node-api.<IP>.nip.io`
+  - `flask.<IP>.nip.io`
+  - `react.<IP>.nip.io`
 
 ## GitOps
 

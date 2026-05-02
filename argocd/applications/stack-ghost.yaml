@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stack-ghost
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: stack-ghost
+    app.kubernetes.io/part-of: app-catalog
+spec:
+  project: default
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: ghost
+    targetRevision: 25.0.4
+    helm:
+      releaseName: ghost
+      values: |
+        service:
+          type: ClusterIP
+        ingress:
+          enabled: false
+        persistence:
+          enabled: false
+        resourcesPreset: nano
+        mysql:
+          primary:
+            persistence:
+              enabled: false
+            resourcesPreset: nano
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: stack-ghost
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

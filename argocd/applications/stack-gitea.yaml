@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stack-gitea
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: stack-gitea
+    app.kubernetes.io/part-of: app-catalog
+spec:
+  project: default
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: gitea
+    targetRevision: 3.2.22
+    helm:
+      releaseName: gitea
+      values: |
+        service:
+          type: ClusterIP
+        ingress:
+          enabled: false
+        persistence:
+          enabled: false
+        resourcesPreset: nano
+        postgresql:
+          primary:
+            persistence:
+              enabled: false
+            resourcesPreset: nano
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: stack-gitea
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

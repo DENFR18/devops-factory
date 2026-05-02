@@ -406,6 +406,15 @@ jobs:
 
           kubectl -n argocd rollout status deployment/access-portal --timeout=120s
 
+          for ns in stack-wordpress stack-ghost stack-gitea stack-mattermost stack-nextcloud; do
+            kubectl create namespace "${ns}" --dry-run=client -o yaml | kubectl apply -f -
+            kubectl label namespace "${ns}" \
+              pod-security.kubernetes.io/enforce=baseline \
+              pod-security.kubernetes.io/audit=restricted \
+              tier=app-catalog \
+              --overwrite
+          done
+
           cat <<EOF | kubectl apply -f -
           apiVersion: networking.k8s.io/v1
           kind: Ingress
@@ -427,12 +436,218 @@ jobs:
                             number: 80
           EOF
 
+          cat <<EOF | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: monitoring-nip-io
+            namespace: monitoring
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: grafana.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: kube-prometheus-stack-grafana
+                          port:
+                            number: 80
+              - host: prometheus.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: kube-prometheus-stack-prometheus
+                          port:
+                            number: 9090
+              - host: alertmanager.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: kube-prometheus-stack-alertmanager
+                          port:
+                            number: 9093
+          EOF
+
+          cat <<EOF | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: app-catalog-nip-io
+            namespace: stack-wordpress
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: wordpress.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: wordpress
+                          port:
+                            number: 80
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: app-catalog-nip-io
+            namespace: stack-ghost
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: ghost.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: ghost
+                          port:
+                            number: 80
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: app-catalog-nip-io
+            namespace: stack-gitea
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: gitea.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: gitea
+                          port:
+                            number: 80
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: app-catalog-nip-io
+            namespace: stack-mattermost
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: slack.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: mattermost-app
+                          port:
+                            number: 8065
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: app-catalog-nip-io
+            namespace: stack-nextcloud
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: cloud.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: nextcloud
+                          port:
+                            number: 80
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: app-catalog-aliases-nip-io
+            namespace: tenant-alpha
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: flask.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: service-alpha
+                          port:
+                            number: 80
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: app-catalog-aliases-nip-io
+            namespace: tenant-beta
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: node-api.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: node-api
+                          port:
+                            number: 80
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: app-catalog-aliases-nip-io
+            namespace: tenant-gamma
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: react.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: react
+                          port:
+                            number: 80
+          EOF
+
           {
             echo "## Ingress nip.io"
             echo ""
             echo "- ingress-nginx IP: ${INGRESS_IP}"
             echo "- Portail: http://${PORTAL_HOST}"
             echo "- ArgoCD: http://${ARGOCD_HOST}"
+            echo "- Grafana: http://grafana.${INGRESS_IP}.nip.io"
+            echo "- Prometheus: http://prometheus.${INGRESS_IP}.nip.io"
+            echo "- Alertmanager: http://alertmanager.${INGRESS_IP}.nip.io"
+            echo "- WordPress + MySQL: http://wordpress.${INGRESS_IP}.nip.io"
+            echo "- Slack-like Mattermost: http://slack.${INGRESS_IP}.nip.io"
+            echo "- Ghost: http://ghost.${INGRESS_IP}.nip.io"
+            echo "- Gitea: http://gitea.${INGRESS_IP}.nip.io"
+            echo "- Cloud Nextcloud: http://cloud.${INGRESS_IP}.nip.io"
+            echo "- Node API: http://node-api.${INGRESS_IP}.nip.io"
+            echo "- Flask API: http://flask.${INGRESS_IP}.nip.io"
+            echo "- React: http://react.${INGRESS_IP}.nip.io"
             echo "- Tenant alpha host pattern: http://alpha.${INGRESS_IP}.nip.io"
             echo "- Tenant beta host pattern: http://beta.${INGRESS_IP}.nip.io"
             echo "- Tenant gamma host pattern: http://gamma.${INGRESS_IP}.nip.io"

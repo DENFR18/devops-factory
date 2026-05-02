@@ -19,10 +19,73 @@ const platformApps = [
     mark: "GF",
     state: "Dashboards",
     desc: "Point d'acces prevu pour les dashboards de la plateforme."
+  },
+  {
+    name: "Alertmanager",
+    prefix: "alertmanager",
+    mark: "AM",
+    state: "Alerting",
+    desc: "Gestion des alertes issues de kube-prometheus-stack."
   }
 ];
 
 const tenantApps = [
+  {
+    name: "WordPress + MySQL",
+    prefix: "wordpress",
+    mark: "WP",
+    state: "CMS",
+    desc: "CMS WordPress avec base SQL pour la demo projet."
+  },
+  {
+    name: "Slack-like",
+    prefix: "slack",
+    mark: "SL",
+    state: "Mattermost",
+    desc: "Messagerie d'equipe compatible usage Slack via Mattermost."
+  },
+  {
+    name: "Ghost",
+    prefix: "ghost",
+    mark: "GH",
+    state: "CMS",
+    desc: "Plateforme de publication moderne pour blog et documentation."
+  },
+  {
+    name: "Gitea",
+    prefix: "gitea",
+    mark: "GT",
+    state: "Git",
+    desc: "Forge Git self-hosted pour repositories, issues et pull requests."
+  },
+  {
+    name: "Cloud",
+    prefix: "cloud",
+    mark: "CL",
+    state: "Nextcloud",
+    desc: "Espace cloud de fichiers pour la plateforme."
+  },
+  {
+    name: "Node API",
+    prefix: "node-api",
+    mark: "JS",
+    state: "Node.js",
+    desc: "API Express exposee via GitOps."
+  },
+  {
+    name: "Flask API",
+    prefix: "flask",
+    mark: "PY",
+    state: "Python",
+    desc: "API Python exposee pour le tenant alpha."
+  },
+  {
+    name: "React",
+    prefix: "react",
+    mark: "RX",
+    state: "Frontend",
+    desc: "Application frontend React exposee via GitOps."
+  },
   {
     name: "Tenant alpha",
     prefix: "alpha",
