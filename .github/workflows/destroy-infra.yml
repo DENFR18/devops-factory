@@ -165,7 +165,14 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
-            if terraform apply -auto-approve tfplan-destroy; then
+            echo "Creation d'un plan destroy frais, tentative ${attempt}/3..."
+            terraform plan \
+              -destroy \
+              -out="tfplan-destroy-${attempt}" \
+              -input=false \
+              -no-color
+
+            if terraform apply -auto-approve "tfplan-destroy-${attempt}"; then
               exit 0
             fi
             echo "Destroy encore bloque, tentative ${attempt}/3. Attente avant nouvel essai..."

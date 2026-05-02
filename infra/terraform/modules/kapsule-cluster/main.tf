@@ -25,9 +25,9 @@ resource "scaleway_k8s_cluster" "main" {
 
   admission_plugins = var.admission_plugins
 
-  # Deleting the cluster will NOT automatically delete attached LBs/volumes.
-  # Clean up manually before destroy to avoid orphaned billable resources.
-  delete_additional_resources = false
+  # Let Scaleway remove cluster-owned resources (LoadBalancers, volumes) during
+  # destroy so the private network can be released cleanly.
+  delete_additional_resources = true
 
   tags = local.all_tags
 }
