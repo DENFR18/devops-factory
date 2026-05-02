@@ -29,8 +29,7 @@ resource "scaleway_vpc_private_network" "main" {
 }
 
 resource "scaleway_vpc_public_gateway_ip" "main" {
-  region = var.region
-  tags   = local.tag_list
+  tags = local.tag_list
 }
 
 resource "scaleway_vpc_public_gateway" "main" {
@@ -41,17 +40,12 @@ resource "scaleway_vpc_public_gateway" "main" {
   tags  = local.tag_list
 }
 
-resource "scaleway_vpc_public_gateway_dhcp" "main" {
-  subnet             = var.private_subnet_cidr
-  push_default_route = true
-  zone               = local.zone
-}
+# scaleway_vpc_public_gateway_dhcp removed — DHCP is now handled automatically
+# by Private Networks (VPC GW v2 migration).
 
 resource "scaleway_vpc_gateway_network" "main" {
   gateway_id         = scaleway_vpc_public_gateway.main.id
   private_network_id = scaleway_vpc_private_network.main.id
-  dhcp_id            = scaleway_vpc_public_gateway_dhcp.main.id
   enable_masquerade  = true
-  enable_dhcp        = true
   zone               = local.zone
 }

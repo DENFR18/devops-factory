@@ -3,7 +3,6 @@ resource "scaleway_object_bucket" "app" {
 
   name   = each.value.name
   region = var.region
-  acl    = "private"
 
   versioning {
     enabled = true
@@ -30,4 +29,12 @@ resource "scaleway_object_bucket" "app" {
     purpose       = each.value.purpose
     "cost-center" = "platform"
   }
+}
+
+resource "scaleway_object_bucket_acl" "app" {
+  for_each = { for b in var.buckets : b.name => b }
+
+  bucket = scaleway_object_bucket.app[each.key].name
+  region = var.region
+  acl    = "private"
 }
