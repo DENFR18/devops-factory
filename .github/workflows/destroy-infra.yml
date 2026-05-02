@@ -68,10 +68,6 @@ jobs:
     permissions:
       contents: read
 
-    defaults:
-      run:
-        working-directory: infra/terraform/environments/${{ inputs.environment }}
-
     steps:
       - name: Validate confirmation input
         env:
@@ -95,6 +91,7 @@ jobs:
           terraform_version: "1.7.5"
 
       - name: Terraform Init
+        working-directory: infra/terraform/environments/${{ inputs.environment }}
         env:
           TF_BACKEND_BUCKET: devops-factory-tfstate-${{ inputs.environment }}
         run: |
@@ -107,6 +104,7 @@ jobs:
             -reconfigure
 
       - name: Terraform Plan Destroy
+        working-directory: infra/terraform/environments/${{ inputs.environment }}
         run: |
           set -euo pipefail
           terraform plan \
@@ -116,11 +114,13 @@ jobs:
             -no-color
 
       - name: Show Destroy Plan
+        working-directory: infra/terraform/environments/${{ inputs.environment }}
         run: |
           set -euo pipefail
           terraform show -no-color tfplan-destroy
 
       - name: Terraform Destroy
+        working-directory: infra/terraform/environments/${{ inputs.environment }}
         run: |
           set -euo pipefail
           terraform apply -auto-approve tfplan-destroy
