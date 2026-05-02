@@ -61,6 +61,7 @@ module "object_storage" {
 
 module "iam" {
   source = "../../modules/iam"
+  count  = var.enable_pipeline_iam ? 1 : 0
 
   project_name    = local.project_name
   env             = local.env

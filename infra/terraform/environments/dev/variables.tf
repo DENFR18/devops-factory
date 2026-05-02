@@ -74,3 +74,9 @@ variable "app_buckets" {
     },
   ]
 }
+
+variable "enable_pipeline_iam" {
+  type        = bool
+  description = "Create a dedicated Scaleway IAM application/API key for CI pipelines. Requires IAM write permissions."
+  default     = false
+}

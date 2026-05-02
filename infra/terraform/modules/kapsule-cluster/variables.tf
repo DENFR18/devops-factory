@@ -42,7 +42,7 @@ variable "description" {
 variable "admission_plugins" {
   type        = list(string)
   description = "Kubernetes admission plugins to enable"
-  default     = ["PodSecurity", "NodeRestriction"]
+  default     = null
 }
 
 variable "maintenance_window_day" {
