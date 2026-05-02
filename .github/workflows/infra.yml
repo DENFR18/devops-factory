@@ -188,7 +188,7 @@ jobs:
 
     env:
       TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
-          TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
+      TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -309,7 +309,7 @@ jobs:
 
     env:
       TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
-          TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
+      TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -434,7 +434,7 @@ jobs:
 
     env:
       TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
-          TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
+      TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -488,7 +488,7 @@ jobs:
 
     env:
       TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
-          TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
+      TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -543,7 +543,7 @@ jobs:
 
     env:
       TF_VAR_project_id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
-          TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
+      TF_VAR_organization_id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
