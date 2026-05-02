@@ -62,9 +62,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+      - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: "1.7.5"
 
       - name: Check formatting
         run: terraform fmt -check -recursive
@@ -82,9 +82,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+      - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: "1.7.5"
 
       - name: Terraform init (no backend)
         run: terraform init -backend=false -input=false
@@ -106,9 +106,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+      - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: "1.7.5"
 
       - name: Terraform init (no backend)
         run: terraform init -backend=false -input=false
@@ -192,9 +192,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+      - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: "1.7.5"
 
       - name: Terraform init
         env:
@@ -312,9 +312,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+      - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: "1.7.5"
 
       - name: Terraform init
         env:
@@ -436,9 +436,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+      - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: "1.7.5"
 
       - name: Download plan artifact
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
@@ -489,9 +489,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+      - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: "1.7.5"
 
       - name: Download plan artifact
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
@@ -543,9 +543,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+      - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: "1.7.5"
 
       - name: Terraform init
         env:
