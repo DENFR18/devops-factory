@@ -1,69 +1,65 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Applications — DevSecOps
 #
-# Pipeline: lint → test → sonarcloud
-#                └→ build-push → trivy-scan → update-image-tag (GitOps)
+# Matrix pipeline covering all services in apps/:
+#   service-alpha  Python / FastAPI
+#   node-api       Node.js / Express
+#   react          React / nginx
 #
-# Triggers:
-#   - push to main or develop (app source / Dockerfile / Helm chart changes)
-#   - pull_request targeting main (lint + test + sonarcloud only — no image push)
-#   - workflow_dispatch (manual)
-#
-# Image registry: Scaleway SCR (rg.fr-par.scw.cloud)
-# Tag strategy:   sha-<short-sha> — no "latest" tag, ever.
-#
-# GitOps deploy: update-image-tag commits the new tag into helm-chart/values-*.yaml.
-# ArgoCD detects the change and syncs the cluster automatically.
+# Stages per service: ci (lint + test) → sonarcloud → build-push → trivy-scan
+#                                                                 → update-image-tag (main/develop only)
 #
 # Required GitHub Secrets:
-#   SCW_SECRET_KEY          — Scaleway secret key (SCR docker login password)
-#   SONAR_TOKEN             — SonarCloud analysis token
-#   SONAR_HOST_URL          — https://sonarcloud.io
+#   SCW_SECRET_KEY   — Scaleway SCR password (username: nologin)
+#   SONAR_TOKEN      — SonarCloud analysis token
+#   SONAR_HOST_URL   — https://sonarcloud.io
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: Applications — DevSecOps
 
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
     paths:
-      - "app.js"
-      - "frontend/**"
-      - "Dockerfile"
-      - "package*.json"
-      - "helm-chart/**"
-      - "sonar-project.properties"
+      - "apps/**"
+      - "charts/**"
+      - ".github/workflows/apps.yml"
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - "app.js"
-      - "frontend/**"
-      - "Dockerfile"
-      - "package*.json"
-      - "helm-chart/**"
-      - "sonar-project.properties"
+      - "apps/**"
+      - "charts/**"
   workflow_dispatch:
 
 env:
-  NODE_VERSION: "20"
   SCW_REGISTRY: rg.fr-par.scw.cloud
-  # Must match the namespace created by the container-registry Terraform module.
   SCW_REGISTRY_NAMESPACE: devops-factory
-  IMAGE_NAME: devops-factory
 
-# One pipeline per branch — never cancel a running build.
 concurrency:
   group: apps-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  # ── 1. lint ──────────────────────────────────────────────────────────────────
-  lint:
-    name: Lint
+  # ── 1. CI — lint + test ───────────────────────────────────────────────────
+  ci:
+    name: CI — ${{ matrix.service }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: service-alpha
+            path: apps/service-alpha
+            language: python
+            python-version: "3.12"
+          - service: node-api
+            path: apps/node-api
+            language: node
+            node-version: "20"
+          - service: react
+            path: apps/react
+            language: node
+            node-version: "20"
 
     permissions:
       contents: read
@@ -71,44 +67,81 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      # ── Python ──────────────────────────────────────────────────────────────
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        if: matrix.language == 'python'
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: ${{ matrix.path }}/requirements-dev.txt
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Python dependencies
+        if: matrix.language == 'python'
+        working-directory: ${{ matrix.path }}
+        run: pip install --quiet -r requirements-dev.txt
 
-      - name: Lint
+      - name: Lint — Python
+        if: matrix.language == 'python'
+        working-directory: ${{ matrix.path }}
+        run: |
+          ruff check .
+          black --check .
+
+      - name: Test — Python
+        if: matrix.language == 'python'
+        working-directory: ${{ matrix.path }}
+        run: |
+          pytest \
+            --cov=. \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=70 \
+            --junitxml=junit.xml \
+            -v
+
+      - name: Upload Python coverage
+        if: matrix.language == 'python'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: coverage-${{ matrix.service }}
+          path: ${{ matrix.path }}/coverage.xml
+          retention-days: 7
+
+      # ── Node ────────────────────────────────────────────────────────────────
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: matrix.language == 'node'
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Node dependencies
+        if: matrix.language == 'node'
+        working-directory: ${{ matrix.path }}
+        run: npm install
+
+      - name: Lint — Node
+        if: matrix.language == 'node'
+        working-directory: ${{ matrix.path }}
         run: npm run lint
 
-  # ── 2. test ──────────────────────────────────────────────────────────────────
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Test
+      - name: Test — Node
+        if: matrix.language == 'node'
+        working-directory: ${{ matrix.path }}
         run: npm test
 
-  # ── 3. sonarcloud ─────────────────────────────────────────────────────────────
+  # ── 2. SonarCloud ────────────────────────────────────────────────────────
   sonarcloud:
-    name: SonarCloud analysis
+    name: SonarCloud — ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [ci]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: service-alpha
+            path: apps/service-alpha
+          - service: node-api
+            path: apps/node-api
+          - service: react
+            path: apps/react
 
     permissions:
       contents: read
@@ -117,27 +150,42 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          # Full history required for accurate blame data and new-code detection.
           fetch-depth: 0
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d8c5efb4e43 # v4.2.1
+        with:
+          name: coverage-${{ matrix.service }}
+          path: ${{ matrix.path }}
+        continue-on-error: true
 
       - name: SonarCloud scan
         uses: SonarSource/sonarcloud-github-action@e44258b109568baa0df60ed515909fc6c72cba92 # v3.0.0
+        with:
+          projectBaseDir: ${{ matrix.path }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-  # ── 4. build-push ─────────────────────────────────────────────────────────────
+  # ── 3. Build & Push ──────────────────────────────────────────────────────
   build-push:
-    name: Build & push image
+    name: Build & Push — ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [ci]
     if: github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: service-alpha
+            path: apps/service-alpha
+          - service: node-api
+            path: apps/node-api
+          - service: react
+            path: apps/react
 
     permissions:
       contents: read
-
-    outputs:
-      image-tag: ${{ steps.meta.outputs.version }}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -146,7 +194,6 @@ jobs:
         uses: docker/login-action@74a5d142397b4f367a81961aba86604d28c75b49 # v3.4.0
         with:
           registry: ${{ env.SCW_REGISTRY }}
-          # Scaleway SCR authentication: any username, secret key as password.
           username: nologin
           password: ${{ secrets.SCW_SECRET_KEY }}
 
@@ -154,31 +201,61 @@ jobs:
         id: meta
         uses: docker/metadata-action@902fa8ec7d6ecbea8a58e42e37c37563e0aab34e # v5.7.0
         with:
-          images: ${{ env.SCW_REGISTRY }}/${{ env.SCW_REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.SCW_REGISTRY }}/${{ env.SCW_REGISTRY_NAMESPACE }}/${{ matrix.service }}
           tags: |
             type=sha,prefix=sha-,format=short
-          # No "latest" tag — ever (CLAUDE.md security rule).
 
       - name: Build and push
         uses: docker/build-push-action@471d1dc4e07e5cdedd4c2ed73f36252b1b4f46fd # v6.15.0
         with:
-          context: .
+          context: ${{ matrix.path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  # ── 5. trivy-scan ─────────────────────────────────────────────────────────────
+      - name: Save image tag
+        env:
+          SERVICE: ${{ matrix.service }}
+          IMAGE_VERSION: ${{ steps.meta.outputs.version }}
+        run: printf '%s' "${IMAGE_VERSION}" > "/tmp/image-tag-${SERVICE}.txt"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: image-tag-${{ matrix.service }}
+          path: /tmp/image-tag-${{ matrix.service }}.txt
+          retention-days: 1
+
+  # ── 4. Trivy image scan ──────────────────────────────────────────────────
   trivy-scan:
-    name: Trivy image scan
+    name: Trivy — ${{ matrix.service }}
     runs-on: ubuntu-latest
     needs: [build-push]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: service-alpha
+          - service: node-api
+          - service: react
 
     permissions:
       contents: read
-      security-events: write  # required for SARIF upload to Security tab
+      security-events: write
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Download image tag
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d8c5efb4e43 # v4.2.1
+        with:
+          name: image-tag-${{ matrix.service }}
+          path: /tmp
+
+      - name: Read image tag
+        id: tag
+        env:
+          SERVICE: ${{ matrix.service }}
+        run: echo "value=$(cat /tmp/image-tag-${SERVICE}.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Login to Scaleway Container Registry
         uses: docker/login-action@74a5d142397b4f367a81961aba86604d28c75b49 # v3.4.0
@@ -190,79 +267,81 @@ jobs:
       - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # 0.30.0
         with:
-          image-ref: ${{ env.SCW_REGISTRY }}/${{ env.SCW_REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ needs.build-push.outputs.image-tag }}
+          image-ref: ${{ env.SCW_REGISTRY }}/${{ env.SCW_REGISTRY_NAMESPACE }}/${{ matrix.service }}:${{ steps.tag.outputs.value }}
           format: sarif
-          output: trivy-results.sarif
+          output: trivy-${{ matrix.service }}.sarif
           severity: CRITICAL,HIGH
-          # Only fail on vulnerabilities that have a fix available — avoids
-          # blocking on unfixed upstream CVEs in the base node:20 image.
           ignore-unfixed: true
           exit-code: "1"
 
-      - name: Upload Trivy SARIF to GitHub Security tab
+      - name: Upload Trivy SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
         with:
-          sarif_file: trivy-results.sarif
-          category: trivy-image-scan
+          sarif_file: trivy-${{ matrix.service }}.sarif
+          category: trivy-${{ matrix.service }}
 
-  # ── 6. update-image-tag (GitOps) ──────────────────────────────────────────────
+  # ── 5. Update image tag — GitOps ─────────────────────────────────────────
   update-image-tag:
-    name: Update image tag (GitOps)
+    name: Update image tag — ${{ matrix.service }}
     runs-on: ubuntu-latest
     needs: [trivy-scan, sonarcloud]
     if: >
       github.event_name != 'pull_request' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: service-alpha
+            values: manifests/tenants/alpha/values.yaml
+          - service: node-api
+            values: charts/node-api/values.yaml
+          - service: react
+            values: charts/react/values.yaml
 
     permissions:
-      contents: write  # required to commit updated Helm values
+      contents: write
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          # Use GITHUB_TOKEN — pushes made with it do NOT retrigger workflows.
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update image tag in values-dev.yaml
-        env:
-          IMAGE_REPO: ${{ env.SCW_REGISTRY }}/${{ env.SCW_REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}
-          IMAGE_TAG: ${{ needs.build-push.outputs.image-tag }}
-        run: |
-          set -euo pipefail
-          sed -i "s|  repository:.*|  repository: \"${IMAGE_REPO}\"|" helm-chart/values-dev.yaml
-          sed -i "s|  tag:.*|  tag: \"${IMAGE_TAG}\"|" helm-chart/values-dev.yaml
-          echo "helm-chart/values-dev.yaml → ${IMAGE_REPO}:${IMAGE_TAG}"
+      - name: Download image tag
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d8c5efb4e43 # v4.2.1
+        with:
+          name: image-tag-${{ matrix.service }}
+          path: /tmp
 
-      - name: Update image tag in values-prod.yaml
-        if: github.ref == 'refs/heads/main'
+      - name: Update chart values
         env:
-          IMAGE_REPO: ${{ env.SCW_REGISTRY }}/${{ env.SCW_REGISTRY_NAMESPACE }}/${{ env.IMAGE_NAME }}
-          IMAGE_TAG: ${{ needs.build-push.outputs.image-tag }}
+          SERVICE: ${{ matrix.service }}
+          VALUES: ${{ matrix.values }}
+          SCW_REGISTRY: ${{ env.SCW_REGISTRY }}
+          SCW_REGISTRY_NAMESPACE: ${{ env.SCW_REGISTRY_NAMESPACE }}
         run: |
           set -euo pipefail
-          if [ -f helm-chart/values-prod.yaml ]; then
-            sed -i "s|  repository:.*|  repository: \"${IMAGE_REPO}\"|" helm-chart/values-prod.yaml
-            sed -i "s|  tag:.*|  tag: \"${IMAGE_TAG}\"|" helm-chart/values-prod.yaml
-            echo "helm-chart/values-prod.yaml → ${IMAGE_REPO}:${IMAGE_TAG}"
+          IMAGE_TAG="$(cat /tmp/image-tag-${SERVICE}.txt)"
+          if [ -f "${VALUES}" ]; then
+            sed -i "s|  tag:.*|  tag: \"${IMAGE_TAG}\"|" "${VALUES}"
+            echo "${VALUES} → ${SERVICE}:${IMAGE_TAG}"
           else
-            echo "helm-chart/values-prod.yaml not found — skipping"
+            echo "WARNING: ${VALUES} not found — skipping"
           fi
 
-      - name: Commit and push updated values
+      - name: Commit and push
         env:
-          IMAGE_TAG: ${{ needs.build-push.outputs.image-tag }}
+          SERVICE: ${{ matrix.service }}
         run: |
           set -euo pipefail
+          IMAGE_TAG="$(cat /tmp/image-tag-${SERVICE}.txt)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add helm-chart/values-dev.yaml
-          git add helm-chart/values-prod.yaml 2>/dev/null || true
-
+          git add manifests/ charts/
           if git diff --staged --quiet; then
-            echo "No changes — image tag already up to date"
+            echo "No changes — tag already up to date"
           else
-            git commit -m "chore(k8s): update image tag to ${IMAGE_TAG} [skip ci]"
+            git commit -m "chore(k8s): update ${SERVICE} image to ${IMAGE_TAG} [skip ci]"
             git push
           fi

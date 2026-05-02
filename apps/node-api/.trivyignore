@@ -1,0 +1,11 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# .trivyignore — node-api
+#
+# Template:
+#   # CVE-XXXX-XXXXX – <package>: <short description>
+#   # Severity  : LOW | MEDIUM | HIGH | CRITICAL
+#   # Status    : <no upstream fix | fix pending | mitigated by ...>
+#   # Scope     : <which binary/path is affected and why it's not reachable>
+#   # Review by : YYYY-MM-DD
+#   CVE-XXXX-XXXXX
+# ──────────────────────────────────────────────────────────────────────────────
