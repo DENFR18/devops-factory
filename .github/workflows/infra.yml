@@ -206,7 +206,6 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET_DEV}" \
             -backend-config="key=terraform.tfstate" \
             -backend-config="region=${SCW_DEFAULT_REGION}" \
-            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
             -input=false \
             -reconfigure
         working-directory: infra/terraform/environments/dev
@@ -327,7 +326,6 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET_PROD}" \
             -backend-config="key=terraform.tfstate" \
             -backend-config="region=${SCW_DEFAULT_REGION}" \
-            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
             -input=false \
             -reconfigure
         working-directory: infra/terraform/environments/prod
@@ -458,7 +456,6 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET_DEV}" \
             -backend-config="key=terraform.tfstate" \
             -backend-config="region=${SCW_DEFAULT_REGION}" \
-            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
             -input=false \
             -reconfigure
         working-directory: infra/terraform/environments/dev
@@ -512,7 +509,6 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET_PROD}" \
             -backend-config="key=terraform.tfstate" \
             -backend-config="region=${SCW_DEFAULT_REGION}" \
-            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
             -input=false \
             -reconfigure
         working-directory: infra/terraform/environments/prod
@@ -561,7 +557,6 @@ jobs:
             -backend-config="bucket=${TF_STATE_BUCKET_DEV}" \
             -backend-config="key=terraform.tfstate" \
             -backend-config="region=${SCW_DEFAULT_REGION}" \
-            -backend-config="endpoint=${SCW_S3_ENDPOINT}" \
             -input=false \
             -reconfigure
         working-directory: infra/terraform/environments/dev
