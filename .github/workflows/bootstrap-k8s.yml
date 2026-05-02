@@ -502,7 +502,7 @@ jobs:
             echo "## ArgoCD admin password reset"
             echo ""
             echo "- username: admin"
-            echo "- password: `${NEW_PASSWORD}`"
+            echo "- password: ${NEW_PASSWORD}"
             echo ""
             echo "Changer ce mot de passe immediatement apres connexion."
           } | tee -a "$GITHUB_STEP_SUMMARY"
