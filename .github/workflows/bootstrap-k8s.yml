@@ -281,7 +281,54 @@ jobs:
         run: |
           kubectl apply -f argocd/root-app.yaml
           kubectl wait -n argocd --for=jsonpath='{.status.sync.status}'=Synced \
-            application/root --timeout=120s
+            application/root --timeout=300s
+
+      - name: Print nip.io ingress URLs
+        run: |
+          for i in $(seq 1 60); do
+            INGRESS_IP="$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
+              -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
+            if [ -n "${INGRESS_IP}" ]; then
+              break
+            fi
+            sleep 10
+          done
+
+          test -n "${INGRESS_IP}"
+          ARGOCD_HOST="argocd.${INGRESS_IP}.nip.io"
+
+          cat <<EOF | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: argocd-nip-io
+            namespace: argocd
+            annotations:
+              nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: ${ARGOCD_HOST}
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: argocd-server
+                          port:
+                            number: 443
+          EOF
+
+          {
+            echo "## Ingress nip.io"
+            echo ""
+            echo "- ingress-nginx IP: ${INGRESS_IP}"
+            echo "- ArgoCD: http://${ARGOCD_HOST}"
+            echo "- Tenant alpha host pattern: http://alpha.${INGRESS_IP}.nip.io"
+            echo "- Tenant beta host pattern: http://beta.${INGRESS_IP}.nip.io"
+            echo "- Tenant gamma host pattern: http://gamma.${INGRESS_IP}.nip.io"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
   get-argocd-password:
     name: Get ArgoCD initial password

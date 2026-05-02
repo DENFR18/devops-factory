@@ -11,7 +11,7 @@ spec:
   project: tenant-beta
   source:
     repoURL: https://github.com/DENFR18/devops-factory.git
-    targetRevision: main
+    targetRevision: HEAD
     path: charts/node-api
     helm:
       valueFiles:

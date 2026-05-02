@@ -10,7 +10,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/DENFR18/devops-factory.git
-    targetRevision: main
+    targetRevision: HEAD
     path: argocd/platform/cert-manager-issuers
   destination:
     server: https://kubernetes.default.svc
