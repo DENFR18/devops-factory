@@ -1,13 +1,14 @@
 # Copy this file to terraform.tfvars and fill in real values.
 # terraform.tfvars is in .gitignore — NEVER commit it.
 
-project_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+project_id      = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+organization_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 # Network
 private_subnet_cidr = "10.0.0.0/20"
 
 # Cluster
-kubernetes_version = "1.31"
+kubernetes_version = "1.32"
 
 # Node pool (dev: DEV1-M, 1-3 nodes)
 node_type       = "DEV1-M"
@@ -24,7 +25,7 @@ owner       = "devops-team"
 #   {
 #     name         = "devops-factory-logs-dev"
 #     purpose      = "logs"
-#     cold_after   = 30
+#     cold_after   = 90
 #     expire_after = 365
 #   },
 # ]
