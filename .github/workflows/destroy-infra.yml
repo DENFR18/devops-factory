@@ -164,6 +164,42 @@ jobs:
 
           echo "Private Network dev detecte: ${PN_ID}"
 
+          echo "Suppression forcee des clusters Kapsule encore attaches au Private Network..."
+          CLUSTER_IDS="$(curl -fsSL \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+            | jq -r --arg pn "${PN_ID}" '.clusters[]? | select((.name == "devops-factory-dev") or (.private_network_id? == $pn)) | .id')"
+
+          if [ -n "${CLUSTER_IDS}" ]; then
+            echo "${CLUSTER_IDS}" \
+              | while read -r cluster_id; do
+                  [ -z "${cluster_id}" ] && continue
+                  echo "Suppression cluster Kapsule ${cluster_id} avec ressources additionnelles"
+                  curl -fsS -X DELETE \
+                    -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+                    "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters/${cluster_id}?with_additional_resources=true" || true
+                done
+
+            echo "Attente de suppression des clusters Kapsule..."
+            for wait_attempt in $(seq 1 30); do
+              REMAINING_CLUSTERS="$(curl -fsSL \
+                -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+                "https://api.scaleway.com/k8s/v1/regions/fr-par/clusters" \
+                | jq -r --arg pn "${PN_ID}" '.clusters[]? | select((.name == "devops-factory-dev") or (.private_network_id? == $pn)) | .id' \
+                | wc -l)"
+
+              if [ "${REMAINING_CLUSTERS}" -eq 0 ]; then
+                echo "Aucun cluster Kapsule residuel."
+                break
+              fi
+
+              echo "Clusters encore visibles (${REMAINING_CLUSTERS}), attente ${wait_attempt}/30..."
+              sleep 20
+            done
+          else
+            echo "Aucun cluster Kapsule residuel detecte."
+          fi
+
           echo "Suppression des connexions Public Gateway encore attachees au Private Network..."
           for api_version in v2 v1; do
             GW_JSON="$(curl -fsSL \
