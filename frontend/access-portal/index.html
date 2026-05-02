@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Factory - Portail d'acces</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">DevOps Factory</p>
+      <h1>Portail d'acces nip.io</h1>
+    </div>
+    <div class="cluster-pill">
+      <span class="status-dot"></span>
+      <span>Kapsule fr-par</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="section-kicker">Acces rapides</p>
+        <h2>Un point d'entree pour la plateforme, les tenants et l'observabilite.</h2>
+        <p>
+          Les liens sont generes depuis l'adresse publique ingress-nginx. Le portail
+          fonctionne donc sans redirection de port et sans configuration DNS manuelle.
+        </p>
+      </div>
+      <div class="ip-panel">
+        <label for="ingressIp">IP ingress-nginx</label>
+        <div class="ip-row">
+          <input id="ingressIp" type="text" inputmode="decimal" autocomplete="off">
+          <button id="applyIp" type="button">Appliquer</button>
+        </div>
+        <p id="ipHint">Detection automatique depuis l'URL courante.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <div>
+          <p class="section-kicker">Plateforme</p>
+          <h2>Services d'administration</h2>
+        </div>
+      </div>
+      <div class="card-grid" id="platformApps"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <div>
+          <p class="section-kicker">Tenants</p>
+          <h2>Applications exposees</h2>
+        </div>
+      </div>
+      <div class="card-grid" id="tenantApps"></div>
+    </section>
+  </main>
+
+  <template id="appCard">
+    <article class="app-card">
+      <div class="card-head">
+        <div class="app-mark"></div>
+        <span class="app-state"></span>
+      </div>
+      <h3></h3>
+      <p class="app-desc"></p>
+      <a class="app-link" target="_blank" rel="noreferrer"></a>
+    </article>
+  </template>
+
+  <script src="portal.js"></script>
+</body>
+</html>

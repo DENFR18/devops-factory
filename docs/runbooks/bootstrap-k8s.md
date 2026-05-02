@@ -27,10 +27,12 @@ Cette procedure initialise la couche plateforme Kubernetes sur Scaleway Kapsule 
    - `bootstrap-argocd`
    - `bootstrap-root-app`
 6. ArgoCD synchronise ensuite la root app, les composants plateforme et les tenants.
-7. Relancer `Bootstrap Kubernetes Platform`.
-8. Choisir `task = get-argocd-password`.
-9. Copier le mot de passe initial affiche dans les logs.
-10. Se connecter a ArgoCD avec l'utilisateur `admin`, puis changer ce mot de passe immediatement.
+7. Ouvrir le summary du job `bootstrap-root-app` et recuperer le lien `portal.<IP>.nip.io`.
+8. Utiliser le portail pour acceder a ArgoCD et aux applications exposees en `nip.io`.
+9. Relancer `Bootstrap Kubernetes Platform`.
+10. Choisir `task = get-argocd-password`.
+11. Copier le mot de passe initial affiche dans les logs.
+12. Se connecter a ArgoCD avec l'utilisateur `admin`, puis changer ce mot de passe immediatement.
 
 Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
 
@@ -44,6 +46,7 @@ Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
 - sealed-secrets via Helm
 - ArgoCD via Helm
 - Application ArgoCD `root`
+- Portail d'acces `portal.<IP>.nip.io`
 
 ## GitOps
 
@@ -65,4 +68,5 @@ Chaque tenant possede un `AppProject` limite a son namespace Kubernetes.
 - Apres installation d'ArgoCD, les deploiements applicatifs doivent passer par GitOps.
 - Aucun secret applicatif ne doit etre commite en clair. Utiliser Sealed Secrets.
 - Les hosts ingress par defaut utilisent `*.devops-factory.example.com`; les remplacer par les domaines reels avant exposition publique.
+- Le portail d'acces genere aussi des URLs temporaires `*.nip.io` a partir de l'IP publique ingress-nginx.
 - Les ClusterIssuers utilisent `devops@example.com`; remplacer cet email par une adresse operationnelle avant usage production.

@@ -281,7 +281,10 @@ jobs:
         run: |
           kubectl apply -f argocd/root-app.yaml
           kubectl wait -n argocd --for=jsonpath='{.status.sync.status}'=Synced \
-            application/root --timeout=300s
+            application/root --timeout=300s || {
+              echo "::warning::ArgoCD root app is still reconciling; continuing to publish nip.io links"
+              kubectl -n argocd get application root -o wide || true
+            }
 
       - name: Print nip.io ingress URLs
         run: |
@@ -296,6 +299,111 @@ jobs:
 
           test -n "${INGRESS_IP}"
           ARGOCD_HOST="argocd.${INGRESS_IP}.nip.io"
+          PORTAL_HOST="portal.${INGRESS_IP}.nip.io"
+
+          kubectl -n argocd create configmap access-portal \
+            --from-file=index.html=frontend/access-portal/index.html \
+            --from-file=styles.css=frontend/access-portal/styles.css \
+            --from-file=portal.js=frontend/access-portal/portal.js \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+          cat <<EOF | kubectl apply -f -
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: access-portal
+            namespace: argocd
+            labels:
+              app.kubernetes.io/name: access-portal
+              app.kubernetes.io/part-of: platform
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: access-portal
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: access-portal
+                  app.kubernetes.io/part-of: platform
+              spec:
+                securityContext:
+                  runAsNonRoot: true
+                  runAsUser: 101
+                  runAsGroup: 101
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - name: nginx
+                    image: nginxinc/nginx-unprivileged:1.27-alpine
+                    ports:
+                      - containerPort: 8080
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                    resources:
+                      requests:
+                        cpu: 25m
+                        memory: 32Mi
+                      limits:
+                        cpu: 100m
+                        memory: 128Mi
+                    volumeMounts:
+                      - name: site
+                        mountPath: /usr/share/nginx/html
+                      - name: cache
+                        mountPath: /var/cache/nginx
+                      - name: run
+                        mountPath: /var/run
+                volumes:
+                  - name: site
+                    configMap:
+                      name: access-portal
+                  - name: cache
+                    emptyDir: {}
+                  - name: run
+                    emptyDir: {}
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: access-portal
+            namespace: argocd
+            labels:
+              app.kubernetes.io/name: access-portal
+              app.kubernetes.io/part-of: platform
+          spec:
+            type: ClusterIP
+            selector:
+              app.kubernetes.io/name: access-portal
+            ports:
+              - name: http
+                port: 80
+                targetPort: 8080
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: access-portal-nip-io
+            namespace: argocd
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: ${PORTAL_HOST}
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: access-portal
+                          port:
+                            number: 80
+          EOF
+
+          kubectl -n argocd rollout status deployment/access-portal --timeout=120s
 
           cat <<EOF | kubectl apply -f -
           apiVersion: networking.k8s.io/v1
@@ -324,6 +432,7 @@ jobs:
             echo "## Ingress nip.io"
             echo ""
             echo "- ingress-nginx IP: ${INGRESS_IP}"
+            echo "- Portail: http://${PORTAL_HOST}"
             echo "- ArgoCD: http://${ARGOCD_HOST}"
             echo "- Tenant alpha host pattern: http://alpha.${INGRESS_IP}.nip.io"
             echo "- Tenant beta host pattern: http://beta.${INGRESS_IP}.nip.io"
