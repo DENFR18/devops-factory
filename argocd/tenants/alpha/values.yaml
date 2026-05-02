@@ -1,6 +1,6 @@
 image:
   repository: rg.fr-par.scw.cloud/devops-factory/service-alpha
-  tag: "sha-005f724"
+  tag: "sha-8bc84eb"
   pullPolicy: IfNotPresent
 
 replicaCount: 1
