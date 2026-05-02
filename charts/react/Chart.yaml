@@ -1,0 +1,6 @@
+apiVersion: v2
+name: react
+description: React frontend — cloud-forge
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
