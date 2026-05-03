@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stack-falco
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: stack-falco
+    app.kubernetes.io/part-of: security
+spec:
+  project: default
+  source:
+    repoURL: https://falcosecurity.github.io/charts
+    chart: falco
+    targetRevision: 4.3.0
+    helm:
+      releaseName: falco
+      values: |
+        tty: true
+        driver:
+          kind: ebpf
+        falcosidekick:
+          enabled: true
+          webui:
+            enabled: true
+            service:
+              type: ClusterIP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: security
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

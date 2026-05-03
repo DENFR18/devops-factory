@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stack-metabase
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: stack-metabase
+    app.kubernetes.io/part-of: data
+spec:
+  project: default
+  source:
+    repoURL: https://pmint93.github.io/helm-charts
+    chart: metabase
+    targetRevision: 2.11.0
+    helm:
+      releaseName: metabase
+      values: |
+        persistence:
+          enabled: false
+        service:
+          type: ClusterIP
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+          limits:
+            memory: 1Gi
+            cpu: 500m
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: metabase
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

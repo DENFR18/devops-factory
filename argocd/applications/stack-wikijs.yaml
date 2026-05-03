@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stack-wikijs
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: stack-wikijs
+    app.kubernetes.io/part-of: app-catalog
+spec:
+  project: default
+  source:
+    repoURL: https://charts.js.wiki
+    chart: wiki
+    targetRevision: 3.1.2
+    helm:
+      releaseName: wikijs
+      values: |
+        postgresql:
+          enabled: true
+          primary:
+            persistence:
+              enabled: false
+        persistence:
+          enabled: false
+        service:
+          type: ClusterIP
+        resources:
+          requests:
+            memory: 256Mi
+            cpu: 100m
+          limits:
+            memory: 512Mi
+            cpu: 250m
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: wikijs
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

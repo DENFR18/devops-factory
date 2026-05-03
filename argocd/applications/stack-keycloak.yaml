@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stack-keycloak
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: stack-keycloak
+    app.kubernetes.io/part-of: app-catalog
+spec:
+  project: default
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: keycloak
+    targetRevision: 21.4.3
+    helm:
+      releaseName: keycloak
+      values: |
+        auth:
+          adminUser: admin
+          adminPassword: devops-factory-keycloak
+        postgresql:
+          enabled: true
+          primary:
+            persistence:
+              enabled: false
+            resourcesPreset: nano
+        metrics:
+          enabled: true
+        service:
+          type: ClusterIP
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: keycloak
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
