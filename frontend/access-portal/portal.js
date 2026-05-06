@@ -85,27 +85,6 @@ const tenantApps = [
     mark: "RX",
     state: "Frontend",
     desc: "Application frontend React exposee via GitOps."
-  },
-  {
-    name: "Tenant alpha",
-    prefix: "alpha",
-    mark: "A",
-    state: "FastAPI",
-    desc: "Service alpha deploye dans le namespace tenant-alpha."
-  },
-  {
-    name: "Tenant beta",
-    prefix: "beta",
-    mark: "B",
-    state: "Node.js",
-    desc: "API Node.js deployee dans le namespace tenant-beta."
-  },
-  {
-    name: "Tenant gamma",
-    prefix: "gamma",
-    mark: "G",
-    state: "React",
-    desc: "Application React deployee dans le namespace tenant-gamma."
   }
 ];
 

@@ -760,9 +760,6 @@ jobs:
             echo "- Wiki.js: http://wikijs.${INGRESS_IP}.nip.io"
             echo "- Falco/Falcosidekick: http://falco.${INGRESS_IP}.nip.io"
             echo "- Trivy Operator metrics: http://trivy.${INGRESS_IP}.nip.io/metrics"
-            echo "- Modele d'hote tenant alpha: http://alpha.${INGRESS_IP}.nip.io"
-            echo "- Modele d'hote tenant beta: http://beta.${INGRESS_IP}.nip.io"
-            echo "- Modele d'hote tenant gamma: http://gamma.${INGRESS_IP}.nip.io"
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
   get-argocd-password:

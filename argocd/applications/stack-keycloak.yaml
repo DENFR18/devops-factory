@@ -19,7 +19,14 @@ spec:
           adminUser: admin
           adminPassword: devops-factory-keycloak
         production: false
-        resourcesPreset: nano
+        replicaCount: 1
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
         postgresql:
           enabled: true
           primary:
