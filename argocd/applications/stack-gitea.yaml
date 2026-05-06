@@ -21,12 +21,24 @@ spec:
           enabled: false
         persistence:
           enabled: false
-        resourcesPreset: nano
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 768Mi
         postgresql:
           primary:
             persistence:
               enabled: false
-            resourcesPreset: nano
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
   destination:
     server: https://kubernetes.default.svc
     namespace: stack-gitea
