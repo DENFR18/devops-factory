@@ -407,7 +407,7 @@ jobs:
 
           kubectl -n argocd rollout status deployment/access-portal --timeout=120s
 
-          for ns in stack-wordpress stack-ghost stack-gitea stack-mattermost stack-nextcloud; do
+          for ns in stack-wordpress stack-ghost stack-gitea stack-mattermost stack-nextcloud keycloak metabase wikijs; do
             kubectl create namespace "${ns}" --dry-run=client -o yaml | kubectl apply -f -
             kubectl label namespace "${ns}" \
               pod-security.kubernetes.io/enforce=baseline \
@@ -415,6 +415,13 @@ jobs:
               tier=app-catalog \
               --overwrite
           done
+
+          kubectl create namespace security --dry-run=client -o yaml | kubectl apply -f -
+          kubectl label namespace security \
+            pod-security.kubernetes.io/enforce=privileged \
+            pod-security.kubernetes.io/audit=restricted \
+            tier=platform \
+            --overwrite
 
           cat <<EOF | kubectl apply -f -
           apiVersion: networking.k8s.io/v1
@@ -632,6 +639,104 @@ jobs:
                             number: 80
           EOF
 
+          cat <<EOF | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: devsecops-nip-io
+            namespace: keycloak
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: keycloak.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: keycloak
+                          port:
+                            number: 80
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: devsecops-nip-io
+            namespace: metabase
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: metabase.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: metabase
+                          port:
+                            number: 80
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: devsecops-nip-io
+            namespace: wikijs
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: wikijs.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: wikijs
+                          port:
+                            number: 80
+          ---
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: devsecops-nip-io
+            namespace: security
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: vault.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: vault-ui
+                          port:
+                            number: 8200
+              - host: falco.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: falco-falcosidekick-ui
+                          port:
+                            number: 2802
+              - host: trivy.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: trivy-operator
+                          port:
+                            number: 80
+          EOF
+
           {
             echo "## Acces publics nip.io"
             echo ""
@@ -649,6 +754,12 @@ jobs:
             echo "- Node API: http://node-api.${INGRESS_IP}.nip.io"
             echo "- Flask API: http://flask.${INGRESS_IP}.nip.io"
             echo "- React: http://react.${INGRESS_IP}.nip.io"
+            echo "- Keycloak: http://keycloak.${INGRESS_IP}.nip.io"
+            echo "- Vault: http://vault.${INGRESS_IP}.nip.io"
+            echo "- Metabase: http://metabase.${INGRESS_IP}.nip.io"
+            echo "- Wiki.js: http://wikijs.${INGRESS_IP}.nip.io"
+            echo "- Falco/Falcosidekick: http://falco.${INGRESS_IP}.nip.io"
+            echo "- Trivy Operator metrics: http://trivy.${INGRESS_IP}.nip.io"
             echo "- Modele d'hote tenant alpha: http://alpha.${INGRESS_IP}.nip.io"
             echo "- Modele d'hote tenant beta: http://beta.${INGRESS_IP}.nip.io"
             echo "- Modele d'hote tenant gamma: http://gamma.${INGRESS_IP}.nip.io"
@@ -772,6 +883,10 @@ jobs:
             stack-ghost
             stack-gitea
             stack-nextcloud
+            keycloak
+            metabase
+            wikijs
+            security
             tenant-alpha
             tenant-beta
             tenant-gamma
@@ -818,6 +933,12 @@ jobs:
             node-api
             flask
             react
+            keycloak
+            vault
+            metabase
+            wikijs
+            falco
+            trivy
           )
 
           {

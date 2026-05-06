@@ -56,6 +56,50 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: security
+  labels:
+    app.kubernetes.io/name: security
+    app.kubernetes.io/part-of: platform
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: restricted
+    tier: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+  labels:
+    app.kubernetes.io/name: keycloak
+    app.kubernetes.io/part-of: app-catalog
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    tier: app-catalog
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metabase
+  labels:
+    app.kubernetes.io/name: metabase
+    app.kubernetes.io/part-of: app-catalog
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    tier: app-catalog
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wikijs
+  labels:
+    app.kubernetes.io/name: wikijs
+    app.kubernetes.io/part-of: app-catalog
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    tier: app-catalog
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   name: tenant-alpha
   labels:
     app.kubernetes.io/name: tenant-alpha

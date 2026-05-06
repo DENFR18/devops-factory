@@ -109,6 +109,51 @@ const tenantApps = [
   }
 ];
 
+const devsecopsApps = [
+  {
+    name: "Keycloak",
+    prefix: "keycloak",
+    mark: "KC",
+    state: "IAM",
+    desc: "Gestion des identites et acces pour les applications de demonstration."
+  },
+  {
+    name: "Vault",
+    prefix: "vault",
+    mark: "VT",
+    state: "Secrets",
+    desc: "Interface Vault en mode dev pour illustrer la gestion des secrets."
+  },
+  {
+    name: "Metabase",
+    prefix: "metabase",
+    mark: "MB",
+    state: "BI",
+    desc: "Exploration et visualisation de donnees pour le volet data."
+  },
+  {
+    name: "Wiki.js",
+    prefix: "wikijs",
+    mark: "WK",
+    state: "Docs",
+    desc: "Wiki projet pour centraliser la documentation et les procedures."
+  },
+  {
+    name: "Falco",
+    prefix: "falco",
+    mark: "FC",
+    state: "Runtime",
+    desc: "Console Falcosidekick pour les evenements de securite runtime."
+  },
+  {
+    name: "Trivy Operator",
+    prefix: "trivy",
+    mark: "TV",
+    state: "Scan",
+    desc: "Point d'acces aux metriques Trivy Operator et aux rapports Kubernetes."
+  }
+];
+
 const ipInput = document.querySelector("#ingressIp");
 const ipHint = document.querySelector("#ipHint");
 const applyButton = document.querySelector("#applyIp");
@@ -159,6 +204,7 @@ function render() {
   localStorage.setItem("devopsFactoryIngressIp", ip);
   renderGroup("platformApps", platformApps, ip);
   renderGroup("tenantApps", tenantApps, ip);
+  renderGroup("devsecopsApps", devsecopsApps, ip);
   ipHint.textContent = ip
     ? `Liens generes avec ${ip}.nip.io`
     : "Ajoute l'IP ingress-nginx ou ouvre le portail via portal.<IP>.nip.io.";

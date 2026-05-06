@@ -28,8 +28,8 @@ Le client souhaite professionnaliser ses livraisons applicatives :
 | Packaging | Helm |
 | Ingress | ingress-nginx + `nip.io` |
 | Monitoring | kube-prometheus-stack, Prometheus, Grafana, Alertmanager |
-| Securite | Trivy, SonarCloud, Checkov, tflint, RBAC, NetworkPolicies, Sealed Secrets |
-| Applications | WordPress, MySQL/MariaDB, Mattermost, Ghost, Gitea, Nextcloud, Flask/FastAPI, Node API, React |
+| Securite | Trivy, Trivy Operator, Falco, Vault, SonarCloud, Checkov, tflint, RBAC, NetworkPolicies, Sealed Secrets |
+| Applications | WordPress, MySQL/MariaDB, Mattermost, Ghost, Gitea, Nextcloud, Keycloak, Metabase, Wiki.js, Flask/FastAPI, Node API, React |
 
 ## Architecture
 
@@ -225,9 +225,21 @@ http://cloud.<IP>.nip.io
 http://node-api.<IP>.nip.io
 http://flask.<IP>.nip.io
 http://react.<IP>.nip.io
+http://keycloak.<IP>.nip.io
+http://vault.<IP>.nip.io
+http://metabase.<IP>.nip.io
+http://wikijs.<IP>.nip.io
+http://falco.<IP>.nip.io
+http://trivy.<IP>.nip.io
 ```
 
 ## Identifiants utiles
+
+Les applications DevSecOps ajoutees pour la demonstration sont exposees en mode non-production :
+
+- Keycloak : utilisateur `admin`, mot de passe `devops-factory-keycloak`.
+- Vault : mode dev, stockage non persistant.
+- Trivy Operator : expose surtout des rapports Kubernetes et des metriques, pas une UI applicative complete.
 
 ### ArgoCD
 

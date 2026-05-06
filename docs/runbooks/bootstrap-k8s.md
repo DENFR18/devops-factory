@@ -61,6 +61,12 @@ Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
   - `node-api.<IP>.nip.io`
   - `flask.<IP>.nip.io`
   - `react.<IP>.nip.io`
+  - `keycloak.<IP>.nip.io`
+  - `vault.<IP>.nip.io`
+  - `metabase.<IP>.nip.io`
+  - `wikijs.<IP>.nip.io`
+  - `falco.<IP>.nip.io` pour Falcosidekick
+  - `trivy.<IP>.nip.io` pour les metriques Trivy Operator
 
 ## GitOps
 
@@ -81,6 +87,7 @@ Chaque tenant possede un `AppProject` limite a son namespace Kubernetes.
 - Les manifests de bootstrap utilisent `kubectl apply`, ils sont idempotents.
 - Apres installation d'ArgoCD, les deploiements applicatifs doivent passer par GitOps.
 - Aucun secret applicatif ne doit etre commite en clair. Utiliser Sealed Secrets.
+- Keycloak et Vault sont configures en mode demonstration ; changer les mots de passe et activer la persistence avant tout usage durable.
 - Les hosts ingress par defaut utilisent `*.devops-factory.example.com`; les remplacer par les domaines reels avant exposition publique.
 - Le portail d'acces genere aussi des URLs temporaires `*.nip.io` a partir de l'IP publique ingress-nginx.
 - Le diagnostic `task = diagnose-apps` permet de prouver qu'une app repond vraiment et d'identifier rapidement les services sans endpoints.

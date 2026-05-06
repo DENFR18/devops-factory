@@ -18,6 +18,7 @@ spec:
         auth:
           adminUser: admin
           adminPassword: devops-factory-keycloak
+        production: false
         postgresql:
           enabled: true
           primary:
