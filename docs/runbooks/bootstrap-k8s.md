@@ -66,7 +66,7 @@ Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
   - `metabase.<IP>.nip.io`
   - `wikijs.<IP>.nip.io`
   - `falco.<IP>.nip.io` pour Falcosidekick
-  - `trivy.<IP>.nip.io` pour les metriques Trivy Operator
+  - `trivy.<IP>.nip.io/metrics` pour les metriques Trivy Operator
 
 ## GitOps
 

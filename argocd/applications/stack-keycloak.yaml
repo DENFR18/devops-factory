@@ -19,6 +19,7 @@ spec:
           adminUser: admin
           adminPassword: devops-factory-keycloak
         production: false
+        resourcesPreset: nano
         postgresql:
           enabled: true
           primary:

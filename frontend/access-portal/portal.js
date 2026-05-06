@@ -148,9 +148,10 @@ const devsecopsApps = [
   {
     name: "Trivy Operator",
     prefix: "trivy",
+    path: "/metrics",
     mark: "TV",
     state: "Scan",
-    desc: "Point d'acces aux metriques Trivy Operator et aux rapports Kubernetes."
+    desc: "Metriques Trivy Operator exposees pour Prometheus et diagnostic securite."
   }
 ];
 
@@ -170,11 +171,11 @@ function getInitialIp() {
   return params.get("ip") || detectIpFromHost() || localStorage.getItem("devopsFactoryIngressIp") || "";
 }
 
-function appUrl(prefix, ip) {
+function appUrl(app, ip) {
   if (!ip) {
     return "#";
   }
-  return `http://${prefix}.${ip}.nip.io`;
+  return `http://${app.prefix}.${ip}.nip.io${app.path || ""}`;
 }
 
 function renderGroup(targetId, apps, ip) {
@@ -185,7 +186,7 @@ function renderGroup(targetId, apps, ip) {
     const node = cardTemplate.content.cloneNode(true);
     const card = node.querySelector(".app-card");
     const link = node.querySelector(".app-link");
-    const url = appUrl(app.prefix, ip);
+    const url = appUrl(app, ip);
 
     card.querySelector(".app-mark").textContent = app.mark;
     card.querySelector(".app-state").textContent = app.state;

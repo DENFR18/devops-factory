@@ -728,7 +728,7 @@ jobs:
               - host: trivy.${INGRESS_IP}.nip.io
                 http:
                   paths:
-                    - path: /
+                    - path: /metrics
                       pathType: Prefix
                       backend:
                         service:
@@ -759,7 +759,7 @@ jobs:
             echo "- Metabase: http://metabase.${INGRESS_IP}.nip.io"
             echo "- Wiki.js: http://wikijs.${INGRESS_IP}.nip.io"
             echo "- Falco/Falcosidekick: http://falco.${INGRESS_IP}.nip.io"
-            echo "- Trivy Operator metrics: http://trivy.${INGRESS_IP}.nip.io"
+            echo "- Trivy Operator metrics: http://trivy.${INGRESS_IP}.nip.io/metrics"
             echo "- Modele d'hote tenant alpha: http://alpha.${INGRESS_IP}.nip.io"
             echo "- Modele d'hote tenant beta: http://beta.${INGRESS_IP}.nip.io"
             echo "- Modele d'hote tenant gamma: http://gamma.${INGRESS_IP}.nip.io"
@@ -909,6 +909,15 @@ jobs:
               echo "#### ${ns}"
               echo '```'
               kubectl -n "${ns}" get pods,svc,endpoints,ingress -o wide || true
+              echo ""
+              echo "# Events"
+              kubectl -n "${ns}" get events --sort-by='.lastTimestamp' | tail -n 30 || true
+              echo ""
+              echo "# Pods non prets"
+              for pod in $(kubectl -n "${ns}" get pods --no-headers 2>/dev/null | awk '{split($2, ready, "/"); if (ready[1] != ready[2] || $3 != "Running") print $1}'); do
+                echo "## ${pod}"
+                kubectl -n "${ns}" describe pod "${pod}" | sed -n '/Events:/,$p' || true
+              done
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
           done
@@ -938,7 +947,6 @@ jobs:
             metabase
             wikijs
             falco
-            trivy
           )
 
           {
@@ -957,3 +965,7 @@ jobs:
             fi
             echo "| ${host} | ${url} | ${code} |" >> "$GITHUB_STEP_SUMMARY"
           done
+
+          trivy_url="http://trivy.${INGRESS_IP}.nip.io/metrics"
+          trivy_code="$(curl -k -sS -o /tmp/health-body -w '%{http_code}' --max-time 20 "${trivy_url}" || true)"
+          echo "| trivy | ${trivy_url} | ${trivy_code:-000} |" >> "$GITHUB_STEP_SUMMARY"

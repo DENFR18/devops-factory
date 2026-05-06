@@ -230,7 +230,7 @@ http://vault.<IP>.nip.io
 http://metabase.<IP>.nip.io
 http://wikijs.<IP>.nip.io
 http://falco.<IP>.nip.io
-http://trivy.<IP>.nip.io
+http://trivy.<IP>.nip.io/metrics
 ```
 
 ## Identifiants utiles
@@ -239,7 +239,7 @@ Les applications DevSecOps ajoutees pour la demonstration sont exposees en mode 
 
 - Keycloak : utilisateur `admin`, mot de passe `devops-factory-keycloak`.
 - Vault : mode dev, stockage non persistant.
-- Trivy Operator : expose surtout des rapports Kubernetes et des metriques, pas une UI applicative complete.
+- Trivy Operator : expose surtout des rapports Kubernetes et des metriques via `/metrics`, pas une UI applicative complete.
 
 ### ArgoCD
 
