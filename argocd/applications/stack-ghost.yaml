@@ -15,6 +15,11 @@ spec:
     helm:
       releaseName: ghost
       values: |
+        global:
+          security:
+            allowInsecureImages: true
+        image:
+          repository: bitnamilegacy/ghost
         service:
           type: ClusterIP
         ingress:
@@ -29,6 +34,8 @@ spec:
             cpu: 500m
             memory: 768Mi
         mysql:
+          image:
+            repository: bitnamilegacy/mysql
           primary:
             persistence:
               enabled: false

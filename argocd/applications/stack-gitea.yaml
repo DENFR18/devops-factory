@@ -15,6 +15,11 @@ spec:
     helm:
       releaseName: gitea
       values: |
+        global:
+          security:
+            allowInsecureImages: true
+        image:
+          repository: bitnamilegacy/gitea
         service:
           type: ClusterIP
         ingress:
@@ -29,6 +34,8 @@ spec:
             cpu: 500m
             memory: 768Mi
         postgresql:
+          image:
+            repository: bitnamilegacy/postgresql
           primary:
             persistence:
               enabled: false

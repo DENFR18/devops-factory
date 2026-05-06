@@ -49,7 +49,7 @@ metadata:
   labels:
     app.kubernetes.io/name: monitoring
     app.kubernetes.io/part-of: platform
-    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce: privileged
     pod-security.kubernetes.io/audit: restricted
     tier: platform
 ---
