@@ -1,6 +1,6 @@
 image:
   repository: rg.fr-par.scw.cloud/devops-factory-dev/node-api
-  tag: "sha-b1e5544"
+  tag: "sha-25ac5c6"
   pullPolicy: IfNotPresent
 
 replicaCount: 1
