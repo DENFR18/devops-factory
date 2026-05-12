@@ -51,9 +51,6 @@ Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
 - Portail d'acces `portal.<IP>.nip.io`
 - Catalogue applicatif GitOps :
   - `wordpress.<IP>.nip.io` pour WordPress + base SQL
-  - `grafana.<IP>.nip.io`
-  - `prometheus.<IP>.nip.io`
-  - `alertmanager.<IP>.nip.io`
   - `slack.<IP>.nip.io` pour Mattermost
   - `ghost.<IP>.nip.io`
   - `gitea.<IP>.nip.io`
@@ -67,6 +64,11 @@ Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
   - `wikijs.<IP>.nip.io`
   - `falco.<IP>.nip.io` pour Falcosidekick
   - `trivy.<IP>.nip.io/metrics` pour les metriques Trivy Operator
+- Monitoring isole :
+  - ArgoCD application `monitoring-grafana-prometheus`
+  - services internes `kube-prometheus-stack-grafana`, `kube-prometheus-stack-prometheus`, `kube-prometheus-stack-alertmanager`
+  - acces operateur par `kubectl port-forward`, sans publication dans le portail ni ingress `nip.io`
+  - dashboard Grafana `DevOps Factory - Pods consommation`
 
 ## GitOps
 
@@ -74,7 +76,7 @@ La root app ArgoCD surveille `argocd/applications/` sur le ref `HEAD` du depot.
 
 Applications gerees :
 
-- `kube-prometheus-stack` dans `monitoring`
+- `monitoring-grafana-prometheus` dans `monitoring`
 - `cert-manager-issuers` pour les ClusterIssuers Let's Encrypt staging/prod
 - `tenant-alpha`
 - `tenant-beta`
@@ -90,5 +92,8 @@ Chaque tenant possede un `AppProject` limite a son namespace Kubernetes.
 - Keycloak et Vault sont configures en mode demonstration ; changer les mots de passe et activer la persistence avant tout usage durable.
 - Les hosts ingress par defaut utilisent `*.devops-factory.example.com`; les remplacer par les domaines reels avant exposition publique.
 - Le portail d'acces genere aussi des URLs temporaires `*.nip.io` a partir de l'IP publique ingress-nginx.
+- Grafana, Prometheus et Alertmanager restent internes. Pour y acceder :
+  - `kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80`
+  - `kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090`
 - Le diagnostic `task = diagnose-apps` permet de prouver qu'une app repond vraiment et d'identifier rapidement les services sans endpoints.
 - Les ClusterIssuers utilisent `devops@example.com`; remplacer cet email par une adresse operationnelle avant usage production.

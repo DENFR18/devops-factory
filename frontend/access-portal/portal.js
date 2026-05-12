@@ -5,27 +5,6 @@ const platformApps = [
     mark: "AC",
     state: "GitOps",
     desc: "Console ArgoCD pour suivre la root app, les tenants et les synchronisations."
-  },
-  {
-    name: "Prometheus",
-    prefix: "prometheus",
-    mark: "PR",
-    state: "Metrics",
-    desc: "Point d'acces prevu pour la supervision Prometheus."
-  },
-  {
-    name: "Grafana",
-    prefix: "grafana",
-    mark: "GF",
-    state: "Dashboards",
-    desc: "Point d'acces prevu pour les dashboards de la plateforme."
-  },
-  {
-    name: "Alertmanager",
-    prefix: "alertmanager",
-    mark: "AM",
-    state: "Alerting",
-    desc: "Gestion des alertes issues de kube-prometheus-stack."
   }
 ];
 

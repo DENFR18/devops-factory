@@ -62,6 +62,7 @@ ArgoCD
   deploy-infra.yml       # deploy manuel dev/prod
   destroy-infra.yml      # destroy manuel dev/prod
   bootstrap-k8s.yml      # bootstrap Kubernetes + ArgoCD + diagnostics
+  deploy-monitoring.yml  # deploiement isole Grafana/Prometheus sans ingress public
   apps.yml               # CI/CD applicative
   infra.yml              # checks Terraform sur PR
 
@@ -214,9 +215,6 @@ Format :
 ```text
 http://portal.<IP>.nip.io
 http://argocd.<IP>.nip.io
-http://grafana.<IP>.nip.io
-http://prometheus.<IP>.nip.io
-http://alertmanager.<IP>.nip.io
 http://wordpress.<IP>.nip.io
 http://slack.<IP>.nip.io
 http://ghost.<IP>.nip.io
@@ -231,6 +229,13 @@ http://metabase.<IP>.nip.io
 http://wikijs.<IP>.nip.io
 http://falco.<IP>.nip.io
 http://trivy.<IP>.nip.io/metrics
+```
+
+Grafana, Prometheus et Alertmanager ne sont pas publies dans le portail ni exposes en `nip.io`. Ils sont deployes dans ArgoCD via l'application `monitoring-grafana-prometheus` et restent accessibles aux operateurs par port-forward :
+
+```text
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
 ```
 
 ## Identifiants utiles
@@ -259,10 +264,21 @@ Le mot de passe doit etre change apres connexion.
 
 ### Grafana
 
-Par defaut, avec kube-prometheus-stack :
+Workflow :
+
+```text
+Deploy Monitoring - Isolated
+task = deploy
+```
+
+Le summary du workflow affiche les services internes et les commandes de port-forward. Par defaut, avec kube-prometheus-stack :
 
 - utilisateur : `admin`
-- mot de passe : `prom-operator`
+- mot de passe : stocke dans le secret Kubernetes `kube-prometheus-stack-grafana`
+
+Dashboard ajoute :
+
+- `DevOps Factory - Pods consommation` : CPU, memoire et requests CPU/memoire par namespace et par pod pour suivre la consommation de toutes les applications.
 
 ## Difference entre deploy dev et deploy prod
 
@@ -602,10 +618,11 @@ Les buckets Terraform state coutent tres peu, mais ils existent encore. Si tu ve
 1. Ouvrir le portail `portal.<IP>.nip.io`.
 2. Montrer ArgoCD et la root app.
 3. Montrer les applications exposees.
-4. Montrer Grafana/Prometheus.
-5. Montrer le workflow `Applications - DevSecOps` vert.
-6. Montrer Trivy/SonarCloud/Checkov comme preuves de securite.
-7. Montrer Terraform et le workflow de destruction pour la maitrise des couts.
+4. Montrer l'application ArgoCD `monitoring-grafana-prometheus`.
+5. Ouvrir Grafana/Prometheus en acces operateur par port-forward et afficher le dashboard `DevOps Factory - Pods consommation`.
+6. Montrer le workflow `Applications - DevSecOps` vert.
+7. Montrer Trivy/SonarCloud/Checkov comme preuves de securite.
+8. Montrer Terraform et le workflow de destruction pour la maitrise des couts.
 
 ## Runbooks
 

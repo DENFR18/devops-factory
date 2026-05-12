@@ -3,10 +3,35 @@ grafana:
   adminPassword: ""
   persistence:
     enabled: false
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: monitoring
+    datasources:
+      enabled: true
+  defaultDashboardsEnabled: true
+  grafana.ini:
+    server:
+      root_url: http://localhost:3000
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
 
 prometheus:
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
   prometheusSpec:
     retention: 7d
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
     resources:
       requests:
         cpu: 250m
@@ -16,6 +41,10 @@ prometheus:
         memory: 2Gi
 
 alertmanager:
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: false
   alertmanagerSpec:
     resources:
       requests:
@@ -24,3 +53,13 @@ alertmanager:
       limits:
         cpu: 250m
         memory: 256Mi
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+prometheus-node-exporter:
+  hostRootFsMount:
+    enabled: false

@@ -1,0 +1,123 @@
+name: Deploy Monitoring - Isolated
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Deploy or diagnose the isolated monitoring stack"
+        required: true
+        default: deploy
+        type: choice
+        options:
+          - deploy
+          - diagnose
+
+env:
+  SCW_DEFAULT_REGION: fr-par
+  SCW_DEFAULT_ZONE: fr-par-1
+  CLUSTER_NAME: devops-factory-dev
+
+concurrency:
+  group: monitoring-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  monitoring:
+    name: Monitoring isolated
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Resolve kubeconfig
+        env:
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          CLUSTER_ID_DEV: ${{ secrets.CLUSTER_ID_DEV }}
+        run: |
+          set -euo pipefail
+
+          CLUSTER_ID="${CLUSTER_ID_DEV:-}"
+          if [ -z "${CLUSTER_ID}" ]; then
+            CLUSTER_ID="$(curl -fsS \
+              -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+              "https://api.scaleway.com/k8s/v1/regions/${SCW_DEFAULT_REGION}/clusters" \
+              | jq -r --arg name "${CLUSTER_NAME}" '.clusters[] | select(.name == $name) | .id' \
+              | head -n1)"
+          fi
+
+          if [ -z "${CLUSTER_ID}" ] || [ "${CLUSTER_ID}" = "null" ]; then
+            echo "Cluster ${CLUSTER_NAME} introuvable. Lance d'abord Deploy Infrastructure."
+            exit 1
+          fi
+
+          curl -fsS \
+            -H "X-Auth-Token: ${SCW_SECRET_KEY}" \
+            "https://api.scaleway.com/k8s/v1/regions/${SCW_DEFAULT_REGION}/clusters/${CLUSTER_ID}/kubeconfig?dl=1" \
+            -o kubeconfig.yaml
+
+          chmod 600 kubeconfig.yaml
+          echo "KUBECONFIG=${PWD}/kubeconfig.yaml" >> "$GITHUB_ENV"
+
+      - name: Deploy monitoring namespace and dashboard
+        run: |
+          set -euo pipefail
+          kubectl apply -f infra/kubernetes/bootstrap/01-namespaces.yaml
+          kubectl apply -f argocd/applications/monitoring-pods-dashboard.yaml
+
+      - name: Apply ArgoCD monitoring application
+        if: inputs.task == 'deploy'
+        run: |
+          set -euo pipefail
+          kubectl -n argocd delete application kube-prometheus-stack --ignore-not-found
+          kubectl apply -f argocd/applications/kube-prometheus-stack.yaml
+          kubectl -n argocd wait application/monitoring-grafana-prometheus \
+            --for=jsonpath='{.status.sync.status}'=Synced \
+            --timeout=600s || true
+          kubectl -n argocd wait application/monitoring-grafana-prometheus \
+            --for=jsonpath='{.status.health.status}'=Healthy \
+            --timeout=600s || true
+
+      - name: Diagnostics
+        if: always()
+        run: |
+          set -euo pipefail
+          {
+            echo "## Monitoring isole"
+            echo ""
+            echo "### ArgoCD"
+            echo '```'
+            kubectl -n argocd get application monitoring-grafana-prometheus -o wide || true
+            echo '```'
+            echo ""
+            echo "### Pods monitoring"
+            echo '```'
+            kubectl -n monitoring get pods -o wide || true
+            echo '```'
+            echo ""
+            echo "### Services internes"
+            echo '```'
+            kubectl -n monitoring get svc kube-prometheus-stack-grafana kube-prometheus-stack-prometheus kube-prometheus-stack-alertmanager || true
+            echo '```'
+            echo ""
+            echo "### Ingress monitoring"
+            echo '```'
+            kubectl -n monitoring get ingress || true
+            echo '```'
+            echo ""
+            echo "### Acces operateur"
+            echo '```bash'
+            echo "kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80"
+            echo "kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090"
+            echo "kubectl -n monitoring get secret kube-prometheus-stack-grafana -o jsonpath='{.data.admin-password}' | base64 -d; echo"
+            echo '```'
+            echo ""
+            echo "Grafana: http://localhost:3000"
+            echo "Prometheus: http://localhost:9090"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
