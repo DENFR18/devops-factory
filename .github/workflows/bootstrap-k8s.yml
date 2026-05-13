@@ -964,7 +964,13 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           for host in "${hosts[@]}"; do
-            url="http://${host}.${INGRESS_IP}.nip.io/"
+            path="/"
+            case "${host}" in
+              node-api|flask|react)
+                path="/health"
+                ;;
+            esac
+            url="http://${host}.${INGRESS_IP}.nip.io${path}"
             code="$(curl -k -sS -o /tmp/health-body -w '%{http_code}' --max-time 20 "${url}" || true)"
             if [ -z "${code}" ]; then
               code="000"

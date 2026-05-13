@@ -19,12 +19,17 @@ spec:
           type: ClusterIP
         ingress:
           enabled: false
+        wordpressSkipInstall: true
+        podAnnotations:
+          devops-factory/reset: wordpress-setup-v2
         persistence:
           enabled: false
         resourcesPreset: nano
         mariadb:
           enabled: true
           primary:
+            podAnnotations:
+              devops-factory/reset: wordpress-setup-v2
             persistence:
               enabled: false
             resourcesPreset: nano

@@ -16,6 +16,11 @@ spec:
       releaseName: mattermost
       values: |
         mattermostApp:
+          replicaCount: 1
+          features:
+            database:
+              driver: postgres
+              dataSource: postgres://mattermost:mattermost-demo-password@mattermost-postgresql:5432/mattermost?sslmode=disable
           ingress:
             enabled: false
           resources:
@@ -25,6 +30,42 @@ spec:
             limits:
               cpu: 500m
               memory: 1Gi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: stack-mattermost
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stack-mattermost-postgresql
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: stack-mattermost-postgresql
+    app.kubernetes.io/part-of: app-catalog
+spec:
+  project: default
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: postgresql
+    targetRevision: 16.7.27
+    helm:
+      releaseName: mattermost-postgresql
+      values: |
+        auth:
+          username: mattermost
+          password: mattermost-demo-password
+          database: mattermost
+        primary:
+          persistence:
+            enabled: false
+          resourcesPreset: nano
   destination:
     server: https://kubernetes.default.svc
     namespace: stack-mattermost
