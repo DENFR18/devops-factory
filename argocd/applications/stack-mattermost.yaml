@@ -15,12 +15,19 @@ spec:
     helm:
       releaseName: mattermost
       values: |
-        mattermostApp:
-          replicaCount: 1
+        global:
+          siteUrl: http://slack.62.210.39.244.nip.io
           features:
             database:
               driver: postgres
               dataSource: postgres://mattermost:mattermost-demo-password@mattermost-postgresql:5432/mattermost?sslmode=disable
+              existingDatabaseSecret:
+                name: mattermost-mattermost-dbsecret
+                key: mattermost.dbsecret
+            fileStore:
+              driver: local
+        mattermostApp:
+          replicaCount: 1
           ingress:
             enabled: false
           resources:
