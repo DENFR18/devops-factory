@@ -231,7 +231,9 @@ http://falco.<IP>.nip.io
 http://trivy.<IP>.nip.io/metrics
 ```
 
-Grafana, Prometheus et Alertmanager ne sont pas publies dans le portail ni exposes en `nip.io`. Ils sont deployes dans ArgoCD via l'application `monitoring-grafana-prometheus` et restent accessibles aux operateurs par port-forward :
+Grafana, Prometheus et Alertmanager sont deployes dans ArgoCD via l'application `monitoring-grafana-prometheus`. Le summary du workflow `Deploy Monitoring - Isolated` affiche directement leurs URLs `nip.io` et le mot de passe admin Grafana decode.
+
+En acces operateur local par port-forward :
 
 ```text
 kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
@@ -271,10 +273,14 @@ Deploy Monitoring - Isolated
 task = deploy
 ```
 
-Le summary du workflow affiche les services internes et les commandes de port-forward. Par defaut, avec kube-prometheus-stack :
+Le summary du workflow affiche directement :
 
-- utilisateur : `admin`
-- mot de passe : stocke dans le secret Kubernetes `kube-prometheus-stack-grafana`
+- l'URL publique `http://grafana.<IP>.nip.io`
+- l'URL Prometheus `http://prometheus.<IP>.nip.io`
+- l'URL Alertmanager `http://alertmanager.<IP>.nip.io`
+- le mot de passe admin decode depuis le secret Kubernetes `kube-prometheus-stack-grafana`
+
+Identifiants : utilisateur `admin`, mot de passe visible dans le summary apres deploiement.
 
 Dashboard ajoute :
 
@@ -619,7 +625,7 @@ Les buckets Terraform state coutent tres peu, mais ils existent encore. Si tu ve
 2. Montrer ArgoCD et la root app.
 3. Montrer les applications exposees.
 4. Montrer l'application ArgoCD `monitoring-grafana-prometheus`.
-5. Ouvrir Grafana/Prometheus en acces operateur par port-forward et afficher le dashboard `DevOps Factory - Pods consommation`.
+5. Recuperer l'URL Grafana et le mot de passe dans le summary du workflow `Deploy Monitoring - Isolated`, ouvrir Grafana et afficher le dashboard `DevOps Factory - Pods consommation`.
 6. Montrer le workflow `Applications - DevSecOps` vert.
 7. Montrer Trivy/SonarCloud/Checkov comme preuves de securite.
 8. Montrer Terraform et le workflow de destruction pour la maitrise des couts.
