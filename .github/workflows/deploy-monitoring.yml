@@ -121,3 +121,36 @@ jobs:
             echo "Grafana: http://localhost:3000"
             echo "Prometheus: http://localhost:9090"
           } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Summary
+        if: always()
+        run: |
+          set -euo pipefail
+
+          INGRESS_IP="$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
+            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
+
+          GRAFANA_PASSWORD="$(kubectl -n monitoring get secret kube-prometheus-stack-grafana \
+            -o jsonpath='{.data.admin-password}' 2>/dev/null | base64 -d || echo 'indisponible')"
+
+          {
+            echo "---"
+            echo "## Acces monitoring"
+            echo ""
+            if [ -n "${INGRESS_IP}" ]; then
+              echo "| Service | URL | Credentials |"
+              echo "|---------|-----|-------------|"
+              echo "| Grafana | http://grafana.${INGRESS_IP}.nip.io | admin / \`${GRAFANA_PASSWORD}\` |"
+              echo "| Prometheus | http://prometheus.${INGRESS_IP}.nip.io | — |"
+              echo "| Alertmanager | http://alertmanager.${INGRESS_IP}.nip.io | — |"
+            else
+              echo "> IP ingress-nginx non disponible — le LoadBalancer est peut-etre encore en cours de provisionnement."
+              echo ""
+              echo "Mot de passe Grafana (admin) : \`${GRAFANA_PASSWORD}\`"
+              echo ""
+              echo "Recuperer l'IP manuellement :"
+              echo '```bash'
+              echo "kubectl -n ingress-nginx get svc ingress-nginx-controller"
+              echo '```'
+            fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"
