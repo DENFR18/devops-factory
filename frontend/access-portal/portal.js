@@ -3,8 +3,8 @@ const platformApps = [
     name: "ArgoCD",
     prefix: "argocd",
     mark: "AC",
-    state: "GitOps",
-    desc: "Console ArgoCD pour suivre la root app, les tenants et les synchronisations."
+    state: "Pilotage",
+    desc: "Console GitOps pour suivre la root app, les tenants et les synchronisations."
   }
 ];
 
@@ -13,57 +13,59 @@ const tenantApps = [
     name: "WordPress + MySQL",
     prefix: "wordpress",
     mark: "WP",
-    state: "CMS",
-    desc: "CMS WordPress avec base SQL pour la demo projet."
+    state: "Web",
+    desc: "Site vitrine client avec base SQL dediee pour les contenus projet."
   },
   {
-    name: "Slack-like",
+    name: "Messagerie",
     prefix: "slack",
     mark: "SL",
-    state: "Mattermost",
-    desc: "Messagerie d'equipe compatible usage Slack via Mattermost."
+    state: "Collaboration",
+    desc: "Espace d'equipe Mattermost pour les echanges projet et run."
   },
   {
     name: "Ghost",
     prefix: "ghost",
     mark: "GH",
-    state: "CMS",
-    desc: "Plateforme de publication moderne pour blog et documentation."
+    state: "Editorial",
+    desc: "Publication de contenus, annonces et articles autour de la transformation cloud."
   },
   {
     name: "Gitea",
     prefix: "gitea",
     mark: "GT",
-    state: "Git",
+    state: "Factory",
     desc: "Forge Git self-hosted pour repositories, issues et pull requests."
   },
   {
     name: "Cloud",
     prefix: "cloud",
     mark: "CL",
-    state: "Nextcloud",
-    desc: "Espace cloud de fichiers pour la plateforme."
+    state: "Documents",
+    desc: "Espace fichiers pour partager les livrables et supports de mission."
   },
   {
     name: "Node API",
     prefix: "node-api",
     mark: "JS",
-    state: "Node.js",
-    desc: "API Express exposee via GitOps."
+    path: "/health",
+    state: "API",
+    desc: "Service Express expose pour valider la chaine build, scan et deploy."
   },
   {
     name: "Flask API",
     prefix: "flask",
     mark: "PY",
-    state: "Python",
-    desc: "API Python exposee pour le tenant alpha."
+    path: "/health",
+    state: "API",
+    desc: "Service Python/FastAPI pour le tenant alpha et les tests de disponibilite."
   },
   {
     name: "React",
     prefix: "react",
     mark: "RX",
     state: "Frontend",
-    desc: "Application frontend React exposee via GitOps."
+    desc: "Interface web moderne livree en conteneur nginx via GitOps."
   }
 ];
 
@@ -73,21 +75,21 @@ const devsecopsApps = [
     prefix: "keycloak",
     mark: "KC",
     state: "IAM",
-    desc: "Gestion des identites et acces pour les applications de demonstration."
+    desc: "Gestion des identites et des acces pour les applications de demonstration."
   },
   {
     name: "Vault",
     prefix: "vault",
     mark: "VT",
     state: "Secrets",
-    desc: "Interface Vault en mode dev pour illustrer la gestion des secrets."
+    desc: "Illustration de la gestion des secrets et des pratiques zero trust."
   },
   {
     name: "Metabase",
     prefix: "metabase",
     mark: "MB",
     state: "BI",
-    desc: "Exploration et visualisation de donnees pour le volet data."
+    desc: "Exploration de donnees pour les indicateurs metier et plateforme."
   },
   {
     name: "Wiki.js",

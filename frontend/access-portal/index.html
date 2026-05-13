@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DevOps Factory - Portail d'acces</title>
+  <title>DevOps Factory - Portail ESN</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
-    <div>
-      <p class="eyebrow">DevOps Factory</p>
-      <h1>Portail d'acces nip.io</h1>
+    <div class="brand">
+      <span class="brand-mark">DF</span>
+      <div>
+        <p class="eyebrow">ESN Cloud & DevSecOps</p>
+        <h1>DevOps Factory</h1>
+      </div>
     </div>
     <div class="cluster-pill">
       <span class="status-dot"></span>
@@ -21,39 +24,64 @@
   <main class="layout">
     <section class="hero">
       <div class="hero-copy">
-        <p class="section-kicker">Acces rapides</p>
-        <h2>Un point d'entree pour la plateforme, les tenants et l'observabilite.</h2>
+        <p class="section-kicker">Portail de demonstration client</p>
+        <h2>Un cockpit ESN pour piloter les applications, la plateforme et la chaine DevSecOps.</h2>
         <p>
-          Les liens sont generes depuis l'adresse publique ingress-nginx. Le portail
-          fonctionne donc sans redirection de port et sans configuration DNS manuelle.
+          Les acces sont generes depuis l'IP publique ingress-nginx. Les services sensibles de monitoring restent hors portail,
+          tandis que les applications de demonstration sont accessibles en un clic.
         </p>
       </div>
-      <div class="ip-panel">
+      <aside class="ops-panel" aria-label="Parametres d'acces">
+        <div>
+          <p class="section-kicker">Contexte runtime</p>
+          <h2>Acces nip.io</h2>
+        </div>
         <label for="ingressIp">IP ingress-nginx</label>
         <div class="ip-row">
-          <input id="ingressIp" type="text" inputmode="decimal" autocomplete="off">
+          <input id="ingressIp" type="text" inputmode="decimal" autocomplete="off" placeholder="62.210.39.244">
           <button id="applyIp" type="button">Appliquer</button>
         </div>
         <p id="ipHint">Detection automatique depuis l'URL courante.</p>
+      </aside>
+    </section>
+
+    <section class="metrics-strip" aria-label="Synthese plateforme">
+      <div class="metric">
+        <span class="metric-value">3</span>
+        <span class="metric-label">tenants applicatifs</span>
+      </div>
+      <div class="metric">
+        <span class="metric-value">GitOps</span>
+        <span class="metric-label">deploiements ArgoCD</span>
+      </div>
+      <div class="metric">
+        <span class="metric-value">DevSecOps</span>
+        <span class="metric-label">securite et qualite integrees</span>
+      </div>
+      <div class="metric">
+        <span class="metric-value">SRE</span>
+        <span class="metric-label">diagnostic et observabilite</span>
       </div>
     </section>
 
     <section class="section">
       <div class="section-title">
         <div>
-          <p class="section-kicker">Plateforme</p>
-          <h2>Services d'administration</h2>
+          <p class="section-kicker">Pilotage</p>
+          <h2>Console plateforme</h2>
         </div>
+        <span class="section-note">Supervision GitOps et reconciliation applicative</span>
       </div>
-      <div class="card-grid" id="platformApps"></div>
+      <div class="card-grid compact" id="platformApps"></div>
     </section>
 
     <section class="section">
       <div class="section-title">
         <div>
-          <p class="section-kicker">Tenants</p>
-          <h2>Applications exposees</h2>
+          <p class="section-kicker">Offres metier</p>
+          <h2>Applications client exposees</h2>
         </div>
+        <span class="section-note">CMS, collaboration, cloud, APIs et frontend</span>
       </div>
       <div class="card-grid" id="tenantApps"></div>
     </section>
@@ -61,9 +89,10 @@
     <section class="section">
       <div class="section-title">
         <div>
-          <p class="section-kicker">DevSecOps</p>
-          <h2>Identite, securite et data</h2>
+          <p class="section-kicker">Socle DevSecOps</p>
+          <h2>Identite, securite, data et knowledge base</h2>
         </div>
+        <span class="section-note">Services transverses pour equipes projet</span>
       </div>
       <div class="card-grid" id="devsecopsApps"></div>
     </section>
