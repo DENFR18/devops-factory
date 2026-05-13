@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/part-of: platform
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-grafana-prometheus
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: monitoring-grafana-prometheus
+    app.kubernetes.io/part-of: platform
+    app.kubernetes.io/component: monitoring
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 70.4.1
+    helm:
+      releaseName: kube-prometheus-stack
+      values: |
+        grafana:
+          enabled: true
+          adminPassword: ""
+          persistence:
+            enabled: false
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: false
+          sidecar:
+            dashboards:
+              enabled: true
+              label: grafana_dashboard
+              labelValue: "1"
+              searchNamespace: monitoring
+            datasources:
+              enabled: true
+          defaultDashboardsEnabled: true
+          grafana.ini:
+            server:
+              root_url: http://localhost:3000
+            analytics:
+              reporting_enabled: false
+              check_for_updates: false
+        prometheus:
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: false
+          prometheusSpec:
+            retention: 7d
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            resources:
+              requests:
+                cpu: 250m
+                memory: 512Mi
+              limits:
+                cpu: 1000m
+                memory: 2Gi
+        alertmanager:
+          service:
+            type: ClusterIP
+          ingress:
+            enabled: false
+          alertmanagerSpec:
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                cpu: 250m
+                memory: 256Mi
+        kubeStateMetrics:
+          enabled: true
+        nodeExporter:
+          enabled: true
+        prometheus-node-exporter:
+          hostRootFsMount:
+            enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true

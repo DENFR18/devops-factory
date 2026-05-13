@@ -65,6 +65,7 @@ Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
   - `falco.<IP>.nip.io` pour Falcosidekick
   - `trivy.<IP>.nip.io/metrics` pour les metriques Trivy Operator
 - Monitoring isole :
+  - dossier `monitoring/` avec `monitoring-stack.yml` et `deploy-monitoring.sh`
   - ArgoCD application `monitoring-grafana-prometheus`
   - services internes `kube-prometheus-stack-grafana`, `kube-prometheus-stack-prometheus`, `kube-prometheus-stack-alertmanager`
   - acces direct `grafana.<IP>.nip.io`, `prometheus.<IP>.nip.io`, `alertmanager.<IP>.nip.io`, sans publication dans le portail

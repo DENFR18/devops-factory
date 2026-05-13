@@ -79,6 +79,10 @@ infra/kubernetes/bootstrap/
   05-rbac.yaml
   helm-values/
 
+monitoring/
+  monitoring-stack.yml  # stack Grafana/Prometheus isolee
+  deploy-monitoring.sh  # deploiement et diagnostic monitoring automatises
+
 argocd/
   root-app.yaml
   applications/          # app-of-apps ArgoCD
@@ -231,7 +235,7 @@ http://falco.<IP>.nip.io
 http://trivy.<IP>.nip.io/metrics
 ```
 
-Grafana, Prometheus et Alertmanager ne sont pas publies dans le portail. Ils sont deployes dans ArgoCD via l'application `monitoring-grafana-prometheus`. Le workflow `Deploy Monitoring - Direct Access` recree leurs URLs directes `nip.io` et affiche le mot de passe admin Grafana decode dans le summary :
+Grafana, Prometheus et Alertmanager ne sont pas publies dans le portail. Ils sont deployes dans ArgoCD via l'application `monitoring-grafana-prometheus`. Le dossier `monitoring/` regroupe la stack et le script d'automatisation. Le workflow `Deploy Monitoring - Direct Access` appelle `monitoring/deploy-monitoring.sh`, recree leurs URLs directes `nip.io` et affiche le mot de passe admin Grafana decode dans le summary :
 
 ```text
 http://grafana.<IP>.nip.io
