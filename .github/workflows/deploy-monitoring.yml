@@ -1,10 +1,10 @@
-name: Deploy Monitoring - Isolated
+name: Deploy Monitoring - Direct Access
 
 on:
   workflow_dispatch:
     inputs:
       task:
-        description: "Deploy or diagnose the isolated monitoring stack"
+        description: "Deploy or diagnose the monitoring stack with direct URLs"
         required: true
         default: deploy
         type: choice
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   monitoring:
-    name: Monitoring isolated
+    name: Monitoring direct access
     runs-on: ubuntu-latest
     environment: dev
     permissions:
@@ -84,12 +84,77 @@ jobs:
             --for=jsonpath='{.status.health.status}'=Healthy \
             --timeout=600s || true
 
+      - name: Expose direct monitoring URLs
+        if: inputs.task == 'deploy'
+        run: |
+          set -euo pipefail
+
+          INGRESS_IP="$(kubectl -n ingress-nginx get svc ingress-nginx-controller \
+            -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+
+          if [ -z "${INGRESS_IP}" ]; then
+            echo "IP publique ingress-nginx introuvable."
+            exit 1
+          fi
+
+          cat <<EOF | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: monitoring-direct-access
+            namespace: monitoring
+            labels:
+              app.kubernetes.io/name: monitoring-direct-access
+              app.kubernetes.io/part-of: platform
+              app.kubernetes.io/component: monitoring
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: grafana.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: kube-prometheus-stack-grafana
+                          port:
+                            number: 80
+              - host: prometheus.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: kube-prometheus-stack-prometheus
+                          port:
+                            number: 9090
+              - host: alertmanager.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: kube-prometheus-stack-alertmanager
+                          port:
+                            number: 9093
+          EOF
+
+          {
+            echo "MONITORING_INGRESS_IP=${INGRESS_IP}"
+            echo "GRAFANA_URL=http://grafana.${INGRESS_IP}.nip.io"
+            echo "PROMETHEUS_URL=http://prometheus.${INGRESS_IP}.nip.io"
+            echo "ALERTMANAGER_URL=http://alertmanager.${INGRESS_IP}.nip.io"
+          } >> "$GITHUB_ENV"
+
       - name: Diagnostics
         if: always()
         run: |
           set -euo pipefail
           {
-            echo "## Monitoring isole"
+            echo "## Monitoring direct"
             echo ""
             echo "### ArgoCD"
             echo '```'
@@ -106,12 +171,22 @@ jobs:
             kubectl -n monitoring get svc kube-prometheus-stack-grafana kube-prometheus-stack-prometheus kube-prometheus-stack-alertmanager || true
             echo '```'
             echo ""
-            echo "### Ingress monitoring"
+            echo "### Ingress monitoring direct"
             echo '```'
             kubectl -n monitoring get ingress || true
             echo '```'
             echo ""
-            echo "### Acces operateur"
+            echo "### Acces directs"
+            echo ""
+            if [ -n "${GRAFANA_URL:-}" ]; then
+              echo "- Grafana: ${GRAFANA_URL}"
+              echo "- Prometheus: ${PROMETHEUS_URL}"
+              echo "- Alertmanager: ${ALERTMANAGER_URL}"
+            else
+              echo "- Relance avec task=deploy pour recreer les URLs directes."
+            fi
+            echo ""
+            echo "### Acces operateur alternatif"
             echo '```bash'
             echo "kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80"
             echo "kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090"

@@ -67,7 +67,8 @@ Total attendu : environ 2 boutons `Run workflow`, zero CLI manuelle.
 - Monitoring isole :
   - ArgoCD application `monitoring-grafana-prometheus`
   - services internes `kube-prometheus-stack-grafana`, `kube-prometheus-stack-prometheus`, `kube-prometheus-stack-alertmanager`
-  - acces operateur par `kubectl port-forward`, sans publication dans le portail ni ingress `nip.io`
+  - acces direct `grafana.<IP>.nip.io`, `prometheus.<IP>.nip.io`, `alertmanager.<IP>.nip.io`, sans publication dans le portail
+  - acces operateur alternatif par `kubectl port-forward`
   - dashboard Grafana `DevOps Factory - Pods consommation`
 
 ## GitOps
@@ -92,7 +93,11 @@ Chaque tenant possede un `AppProject` limite a son namespace Kubernetes.
 - Keycloak et Vault sont configures en mode demonstration ; changer les mots de passe et activer la persistence avant tout usage durable.
 - Les hosts ingress par defaut utilisent `*.devops-factory.example.com`; les remplacer par les domaines reels avant exposition publique.
 - Le portail d'acces genere aussi des URLs temporaires `*.nip.io` a partir de l'IP publique ingress-nginx.
-- Grafana, Prometheus et Alertmanager restent internes. Pour y acceder :
+- Grafana, Prometheus et Alertmanager ne sont pas affiches dans le portail. Pour y acceder directement :
+  - `http://grafana.<IP>.nip.io`
+  - `http://prometheus.<IP>.nip.io`
+  - `http://alertmanager.<IP>.nip.io`
+- Acces alternatif par port-forward :
   - `kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80`
   - `kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090`
 - Le diagnostic `task = diagnose-apps` permet de prouver qu'une app repond vraiment et d'identifier rapidement les services sans endpoints.

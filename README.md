@@ -62,7 +62,7 @@ ArgoCD
   deploy-infra.yml       # deploy manuel dev/prod
   destroy-infra.yml      # destroy manuel dev/prod
   bootstrap-k8s.yml      # bootstrap Kubernetes + ArgoCD + diagnostics
-  deploy-monitoring.yml  # deploiement isole Grafana/Prometheus sans ingress public
+  deploy-monitoring.yml  # deploiement Grafana/Prometheus avec acces direct hors portail
   apps.yml               # CI/CD applicative
   infra.yml              # checks Terraform sur PR
 
@@ -231,9 +231,15 @@ http://falco.<IP>.nip.io
 http://trivy.<IP>.nip.io/metrics
 ```
 
-Grafana, Prometheus et Alertmanager sont deployes dans ArgoCD via l'application `monitoring-grafana-prometheus`. Le summary du workflow `Deploy Monitoring - Isolated` affiche directement leurs URLs `nip.io` et le mot de passe admin Grafana decode.
+Grafana, Prometheus et Alertmanager ne sont pas publies dans le portail. Ils sont deployes dans ArgoCD via l'application `monitoring-grafana-prometheus`. Le workflow `Deploy Monitoring - Direct Access` recree leurs URLs directes `nip.io` et affiche le mot de passe admin Grafana decode dans le summary :
 
-En acces operateur local par port-forward :
+```text
+http://grafana.<IP>.nip.io
+http://prometheus.<IP>.nip.io
+http://alertmanager.<IP>.nip.io
+```
+
+En cas de besoin, les operateurs peuvent aussi utiliser le port-forward :
 
 ```text
 kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
@@ -269,7 +275,7 @@ Le mot de passe doit etre change apres connexion.
 Workflow :
 
 ```text
-Deploy Monitoring - Isolated
+Deploy Monitoring - Direct Access
 task = deploy
 ```
 
@@ -625,7 +631,7 @@ Les buckets Terraform state coutent tres peu, mais ils existent encore. Si tu ve
 2. Montrer ArgoCD et la root app.
 3. Montrer les applications exposees.
 4. Montrer l'application ArgoCD `monitoring-grafana-prometheus`.
-5. Recuperer l'URL Grafana et le mot de passe dans le summary du workflow `Deploy Monitoring - Isolated`, ouvrir Grafana et afficher le dashboard `DevOps Factory - Pods consommation`.
+5. Recuperer l'URL Grafana et le mot de passe dans le summary du workflow `Deploy Monitoring - Direct Access`, ouvrir Grafana et afficher le dashboard `DevOps Factory - Pods consommation`.
 6. Montrer le workflow `Applications - DevSecOps` vert.
 7. Montrer Trivy/SonarCloud/Checkov comme preuves de securite.
 8. Montrer Terraform et le workflow de destruction pour la maitrise des couts.

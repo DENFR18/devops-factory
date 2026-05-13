@@ -456,6 +456,51 @@ jobs:
           apiVersion: networking.k8s.io/v1
           kind: Ingress
           metadata:
+            name: monitoring-direct-access
+            namespace: monitoring
+            labels:
+              app.kubernetes.io/name: monitoring-direct-access
+              app.kubernetes.io/part-of: platform
+              app.kubernetes.io/component: monitoring
+          spec:
+            ingressClassName: nginx
+            rules:
+              - host: grafana.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: kube-prometheus-stack-grafana
+                          port:
+                            number: 80
+              - host: prometheus.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: kube-prometheus-stack-prometheus
+                          port:
+                            number: 9090
+              - host: alertmanager.${INGRESS_IP}.nip.io
+                http:
+                  paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: kube-prometheus-stack-alertmanager
+                          port:
+                            number: 9093
+          EOF
+
+          cat <<EOF | kubectl apply -f -
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
             name: app-catalog-nip-io
             namespace: stack-wordpress
           spec:
@@ -710,6 +755,9 @@ jobs:
             echo "- IP publique ingress-nginx: ${INGRESS_IP}"
             echo "- Portail: http://${PORTAL_HOST}"
             echo "- ArgoCD: http://${ARGOCD_HOST}"
+            echo "- Grafana direct: http://grafana.${INGRESS_IP}.nip.io"
+            echo "- Prometheus direct: http://prometheus.${INGRESS_IP}.nip.io"
+            echo "- Alertmanager direct: http://alertmanager.${INGRESS_IP}.nip.io"
             echo "- WordPress + MySQL: http://wordpress.${INGRESS_IP}.nip.io"
             echo "- Messagerie Mattermost: http://slack.${INGRESS_IP}.nip.io"
             echo "- Ghost: http://ghost.${INGRESS_IP}.nip.io"
