@@ -1,6 +1,6 @@
 image:
   repository: rg.fr-par.scw.cloud/devops-factory-dev/react
-  tag: "sha-42e7add"
+  tag: "sha-abdf106"
   pullPolicy: IfNotPresent
 
 replicaCount: 1
